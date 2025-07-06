@@ -8,6 +8,7 @@
     "pages/DetailPage",
     "pages/EnvMonitorPage",
     "pages/ForgotPasswordPage",
-    "pages/TermsPage"
+    "pages/TermsPage",
+    "pages/SmokeAlarmPage"
   ]
 }

@@ -245,70 +245,68 @@ struct MainPage {
 
         Blank()
 
-        // 使用现有资源
-        Image($r('app.media.index1_unused'))
-          .width(24)
-          .height(24)
-          .margin({ left: 10 })
-
-        Image($r('app.media.index2_unused'))
-          .width(24)
-          .height(24)
-          .margin({ left: 10 })
+        // 烟雾报警入口按钮
+        Button() {
+          Row({ space: 8 }) {
+            Image($r('app.media.gas'))
+              .width(24)
+              .height(24)
+              .fillColor('#E53935')
+            
+            Text('烟雾报警')
+              .fontSize(16)
+              .fontColor('#E53935')
+              .fontWeight(FontWeight.Bold)
+          }
+        }
+        .backgroundColor('rgba(229, 57, 53, 0.1)')
+        .height(40)
+        .borderRadius(20)
+        .padding({ left: 16, right: 16 })
+        .onClick(() => {
+          router.pushUrl({ url: 'pages/SmokeAlarmPage' });
+        })
       }
-      .padding({ left: 20, right: 20, top: 20 })
+      .width('100%')
+      .padding({ left: 20, right: 20, top: 15, bottom: 15 })
 
       // 房间选择栏
       Scroll() {
         Row() {
           ForEach(this.rooms, (room: RoomItem) => {
             this.renderRoomItem(room)
-          })
+          }, (room: RoomItem) => room.id.toString())
         }
       }
       .scrollable(ScrollDirection.Horizontal)
       .scrollBar(BarState.Off)
-      .height(50)
-      .margin({ top: 10, left: 10 })
+      .padding({ left: 20, right: 20, top: 10, bottom: 10 })
 
       // 环境数据卡片
       Row() {
         ForEach(this.environmentData, (item: DeviceItem) => {
           this.renderEnvironmentItem(item)
-        })
+        }, (item: DeviceItem) => item.id.toString())
       }
-      .justifyContent(FlexAlign.SpaceBetween)
       .width('100%')
-      .padding({ left: 20, right: 20, top: 20 })
+      .justifyContent(FlexAlign.SpaceBetween)
+      .padding({ left: 20, right: 20, top: 10, bottom: 20 })
 
-      // 设备列表区域
-      Row() {
-        Text('我的设备')
+      // 设备控制列表
+      Column() {
+        Text('设备控制')
           .fontSize(20)
           .fontWeight(FontWeight.Bold)
           .fontColor('#333')
+          .alignSelf(ItemAlign.Start)
+          .margin({ bottom: 10 })
 
-        Blank()
-
-        Button('添加设备')
-          .fontSize(14)
-          .fontColor('#1890ff')
-          .backgroundColor('transparent')
-          .height(32)
+        ForEach(this.devices, (device: DeviceItem) => {
+          this.renderDeviceItem(device)
+        }, (device: DeviceItem) => device.id.toString())
       }
-      .padding({ left: 20, right: 20, top: 30 })
-
-      // 设备列表
-      Scroll() {
-        Column() {
-          ForEach(this.devices, (device: DeviceItem) => {
-            this.renderDeviceItem(device)
-          })
-        }
-        .padding({ left: 20, right: 20, top: 10, bottom: 80 })
-      }
-      .scrollBar(BarState.Auto)
-      .layoutWeight(1)
+      .width('100%')
+      .padding({ left: 20, right: 20 })
     }
     .width('100%')
     .height('100%')

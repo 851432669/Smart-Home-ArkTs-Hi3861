@@ -1,6 +1,8 @@
 import { AIComponent } from '../view/AIComponent';
 import { EnvComponent } from '../view/EnvComponent';
 import { SwiperComponent } from '../view/SwiperComponent';
+import { MqttMessage } from '@ohos/mqtt';
+import MQTTUtil from '../common/utils/MQTTUtil';
 import EnvironmentViewModel from '../viewmodel/EnvironmentViewModel';
 import router from '@ohos.router';
 
@@ -21,6 +23,22 @@ export struct EnvMonitorPage {
       console.error("❌ 天气数据加载失败", JSON.stringify(err))
     })
   }
+  // aboutToAppear(): void {
+  //   new MQTTUtil().connect(
+  //     (err: Error, data: MqttMessage) => {
+  //       //如果没有出错就处理数据
+  //       if (!err) {
+  //         //解析接收到的数据为EnvironmentViewModel对象
+  //         this.item = JSON.parse(String(data.payload)) as EnvironmentViewModel;
+  //
+  //         //如果实例不为空就更新状态变量
+  //         if (!this.item) {
+  //           this.item = new EnvironmentViewModel()
+  //         }
+  //       }
+  //     }
+  //   )
+  // }
 
   build() {
     Stack({ alignContent: Alignment.Top }) {
