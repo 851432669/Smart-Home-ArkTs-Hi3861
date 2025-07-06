@@ -81,7 +81,8 @@ struct MainPage {
     { id: 1, name: '空调', icon: $r('app.media.ac'), status: '26℃', isOn: true, value: '26' },
     { id: 2, name: '电视', icon: $r('app.media.tv'), status: '关闭', isOn: false },
     { id: 3, name: '窗帘', icon: $r('app.media.curtain'), status: '开启', isOn: true },
-    { id: 4, name: '音响', icon: $r('app.media.audio'), status: '关闭', isOn: false }
+    { id: 4, name: '音响', icon: $r('app.media.audio'), status: '关闭', isOn: false },
+    { id: 5, name: '扫地机器人', icon: $r('app.media.sweep'), status: '关闭', isOn: false }
   ]
 
   // 添加一个辅助的触发刷新的变量
