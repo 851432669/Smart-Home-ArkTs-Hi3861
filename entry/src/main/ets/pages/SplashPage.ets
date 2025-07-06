@@ -1,4 +1,5 @@
 import router from '@ohos.router'
+import { globalDataManager } from '../common/utils/GlobalDataManager'
 
 @Entry
 @Component
@@ -9,10 +10,15 @@ struct SplashPage {
   @State textScale: number = 0.5
   @State appNameOpacity: number = 0
   @State dotCount: number = 0
+  @State isDataLoaded: boolean = false
   private timerId: number = -1
   private animationTimerId: number = -1
+  @State canNavigate: boolean = false; // 新增状态，用于控制导航
 
   aboutToAppear() {
+    // 立即开始预加载天气数据
+    this.preloadData();
+    
     // 图片动画
     animateTo({
       duration: 1000,
@@ -48,10 +54,53 @@ struct SplashPage {
       this.dotCount = (this.dotCount + 1) % 4
     }, 500)
 
-    // 3秒后自动跳转
+    // 至少等待3秒钟，但不直接跳转，由数据加载完成来触发
     this.timerId = setTimeout(() => {
-      router.pushUrl({ url: 'pages/Index' })
+      // 如果数据已加载完成，则立即跳转
+      if (this.isDataLoaded) {
+        this.navigateToIndex();
+      } else {
+        // 如果数据还没加载完成，记录可以跳转的标记，等待数据加载
+        this.canNavigate = true;
+      }
     }, 3000)
+  }
+
+  // 预加载数据
+  async preloadData() {
+    console.info('开始在SplashPage预加载数据');
+    let attempts = 0;
+    while (attempts < 3) {
+      try {
+        await globalDataManager.preloadWeatherData();
+        this.isDataLoaded = true;
+        console.info('SplashPage预加载完成');
+        break;
+      } catch (error) {
+        console.error('预加载数据出错:', JSON.stringify(error));
+        // 非最后一次尝试，等待1秒后重试
+        if (attempts < 2) {
+          await new Promise<void>(resolve => setTimeout(resolve, 1000));
+        }
+      }
+      attempts++;
+    }
+    
+    // 检查是否已经超过3秒，如果是则立即导航
+    if (this.canNavigate) {
+      this.navigateToIndex();
+    }
+  }
+  
+  // 导航到主页
+  navigateToIndex() {
+    if (this.timerId !== -1) {
+      clearTimeout(this.timerId);
+      this.timerId = -1;
+    }
+    
+    console.info('导航到主页...');
+    router.pushUrl({ url: 'pages/Index' });
   }
 
   aboutToDisappear() {

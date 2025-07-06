@@ -3,6 +3,7 @@ import { EnvMonitorPage } from './EnvMonitorPage'
 import { SmartPage } from './SmartPage'
 import { ProfilePage } from './ProfilePage'
 import EnvironmentViewModel from '../viewmodel/EnvironmentViewModel'
+import { globalDataManager, EnvironmentDataItem } from '../common/utils/GlobalDataManager';
 
 // 定义接口类型
 interface TabItem {
@@ -69,11 +70,10 @@ struct MainPage {
     { id: 4, name: '阳台', isSelected: false }
   ]
 
-  @State environmentData: DeviceItem[] = [
+  @State environmentData: EnvironmentDataItem[] = [
     { id: 0, name: '天气', icon: $r('app.media.tem'), status: '31.0', unit: '℃' },
     { id: 1, name: '湿度', icon: $r('app.media.humidity'), status: '65', unit: '%' },
     { id: 2, name: 'PM2.5', icon: $r('app.media.pm25_o'), status: '4', unit: '' },
-
   ]
 
   @State devices: DeviceItem[] = [
@@ -96,7 +96,7 @@ struct MainPage {
         isSelected: room.id === roomId
       } as RoomItem;
     });
-    
+
     // 强制触发UI更新
     this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
   }
@@ -145,7 +145,7 @@ struct MainPage {
   }
 
   @Builder
-  renderEnvironmentItem(item: DeviceItem) {
+  renderEnvironmentItem(item: EnvironmentDataItem) {
     Column() {
       Row() {
         Image(item.icon)
@@ -306,7 +306,7 @@ struct MainPage {
                   .width(28)
                   .height(28)
                   .fillColor('#1890ff')
-                
+
                 Text('添加设备')
                   .fontSize(18)
                   .fontColor('#1890ff')
@@ -331,9 +331,9 @@ struct MainPage {
       } else {
         // 环境数据卡片
         Row() {
-          ForEach(this.environmentData, (item: DeviceItem) => {
+          ForEach(this.environmentData, (item: EnvironmentDataItem) => {
             this.renderEnvironmentItem(item)
-          }, (item: DeviceItem) => item.id.toString())
+          }, (item: EnvironmentDataItem) => item.id.toString())
         }
         .width('100%')
         .justifyContent(FlexAlign.SpaceBetween)
@@ -362,7 +362,7 @@ struct MainPage {
                     .width(28)
                     .height(28)
                     .fillColor('#1890ff')
-                  
+
                   Text('添加设备')
                     .fontSize(18)
                     .fontColor('#1890ff')
@@ -448,48 +448,61 @@ struct MainPage {
 
   // 添加一个新方法用于获取天气数据
   aboutToAppear() {
-    // 初始触发刷新，确保第一次渲染时UI正确
+    // 初始触发刷新
     this.refreshTrigger = 1;
     
-    // 获取天气数据
-    const LOCATION_ID = '101230201' // 厦门
-    const viewModel = new EnvironmentViewModel()
+    // 直接使用全局数据管理器中的数据
+    this.environmentData = globalDataManager.getEnvironmentData();
     
-    viewModel.fetchWeather(LOCATION_ID).then(() => {
-      // 更新环境数据
-      this.environmentData = [
-        { 
-          id: 0, 
-          name: '天气',
-          icon: $r('app.media.weather'), // 固定使用weather.png
-          status: viewModel.weather, 
-          unit: '',
-          weatherIcon: viewModel.getWeatherIcon() // 根据天气状况使用不同图标
-        },
-        { 
-          id: 1, 
-          name: '温度', 
-          icon: $r('app.media.tem'), 
-          status: `${viewModel.temp}`, 
-          unit: '℃'
-        },
-        { 
-          id: 2, 
-          name: '湿度', 
-          icon: $r('app.media.humidity'), 
-          status: `${viewModel.hum}`, 
-          unit: '%' 
-        },
-        { 
-          id: 3, 
-          name: 'PM2.5', 
-          icon: $r('app.media.pm25_o'), 
-          status: '4', 
-          unit: '' 
-        },
-      ]
-    }).catch((err: Error) => {
-      console.error("获取天气数据失败", JSON.stringify(err))
-    })
+    // 如果数据未预加载成功(极少情况)，尝试重新加载
+    if (!globalDataManager.isLoaded()) {
+      console.info('天气数据未预加载，尝试重新获取');
+      
+      const LOCATION_ID = '101230201'; // 厦门
+      const viewModel = new EnvironmentViewModel();
+      
+      viewModel.fetchWeather(LOCATION_ID).then(() => {
+        const data: EnvironmentDataItem[] = [
+          { 
+            id: 0, 
+            name: '天气',
+            icon: $r('app.media.weather'),
+            status: viewModel.weather, 
+            unit: '',
+            weatherIcon: viewModel.getWeatherIcon()
+          },
+          { 
+            id: 1, 
+            name: '温度', 
+            icon: $r('app.media.tem'), 
+            status: `${viewModel.temp}`, 
+            unit: '℃'
+          },
+          { 
+            id: 2, 
+            name: '湿度', 
+            icon: $r('app.media.humidity'), 
+            status: `${viewModel.hum}`, 
+            unit: '%' 
+          },
+          { 
+            id: 3, 
+            name: 'PM2.5', 
+            icon: $r('app.media.pm25_o'), 
+            status: '4', 
+            unit: '' 
+          },
+        ];
+        
+        // 更新数据并保存到全局管理器
+        this.environmentData = data;
+        globalDataManager.setEnvironmentData(data);
+        
+        // 触发UI刷新
+        this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
+      }).catch((err: Error) => {
+        console.error("获取天气数据失败", err.message);
+      });
+    }
   }
 }
