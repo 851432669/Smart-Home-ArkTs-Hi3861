@@ -17,15 +17,27 @@ export struct SmartPage {
 
         Blank()
 
-        Image($r('app.media.index1_unused'))
-          .width(24)
-          .height(24)
-          .margin({ left: 10 })
-
-        Image($r('app.media.index2_unused'))
-          .width(24)
-          .height(24)
-          .margin({ left: 10 })
+        // 烟雾报警入口按钮
+        Button() {
+          Row({ space: 8 }) {
+            Image($r('app.media.gas'))
+              .width(24)
+              .height(24)
+              .fillColor('#E53935')
+            
+            Text('烟雾报警')
+              .fontSize(16)
+              .fontColor('#E53935')
+              .fontWeight(FontWeight.Bold)
+          }
+        }
+        .backgroundColor('rgba(229, 57, 53, 0.1)')
+        .height(40)
+        .borderRadius(20)
+        .padding({ left: 16, right: 16 })
+        .onClick(() => {
+          router.pushUrl({ url: 'pages/SmokeAlarmPage' });
+        })
       }
       .padding({ left: 20, right: 20, top: 20 })
 

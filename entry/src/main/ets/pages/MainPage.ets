@@ -84,6 +84,9 @@ struct MainPage {
     { id: 4, name: '音响', icon: $r('app.media.audio'), status: '关闭', isOn: false }
   ]
 
+  // 添加一个辅助的触发刷新的变量
+  @State refreshTrigger: number = 0
+
   selectRoom(roomId: number) {
     // 修复: 显式创建 RoomItem 对象
     this.rooms = this.rooms.map(room => {
@@ -93,6 +96,9 @@ struct MainPage {
         isSelected: room.id === roomId
       } as RoomItem;
     });
+    
+    // 强制触发UI更新
+    this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
   }
 
   toggleDevice(deviceId: number) {
@@ -131,8 +137,11 @@ struct MainPage {
         radius: 20,
         style: BorderStyle.Solid
       })
+      .backgroundColor(room.isSelected ? 'rgba(24, 144, 255, 0.05)' : 'transparent')
       .margin({ right: 10 })
-      .onClick(() => this.selectRoom(room.id))
+      .onClick(() => {
+        this.selectRoom(room.id);
+      })
   }
 
   @Builder
@@ -160,7 +169,7 @@ struct MainPage {
               .fontSize(24)
               .fontWeight(FontWeight.Bold)
               .fontColor('#333')
-            
+
             // 天气图标
             if (item.weatherIcon) {
               Image(item.weatherIcon)
@@ -245,26 +254,27 @@ struct MainPage {
 
         Blank()
 
-        // 烟雾报警入口按钮
+        // 添加设备按钮 (替换原来的烟雾报警按钮)
         Button() {
           Row({ space: 8 }) {
-            Image($r('app.media.gas'))
+            Image($r('app.media.increase'))
               .width(24)
               .height(24)
-              .fillColor('#E53935')
-            
-            Text('烟雾报警')
+              .fillColor('#1890ff')
+
+            Text('添加设备')
               .fontSize(16)
-              .fontColor('#E53935')
+              .fontColor('#1890ff')
               .fontWeight(FontWeight.Bold)
           }
         }
-        .backgroundColor('rgba(229, 57, 53, 0.1)')
+        .backgroundColor('rgba(24, 144, 255, 0.1)')
         .height(40)
         .borderRadius(20)
         .padding({ left: 16, right: 16 })
         .onClick(() => {
-          router.pushUrl({ url: 'pages/SmokeAlarmPage' });
+          // 添加设备功能，暂时保留此占位
+          console.info('添加设备按钮点击')
         })
       }
       .width('100%')
@@ -275,38 +285,76 @@ struct MainPage {
         Row() {
           ForEach(this.rooms, (room: RoomItem) => {
             this.renderRoomItem(room)
-          }, (room: RoomItem) => room.id.toString())
+          }, (room: RoomItem) => room.id.toString() + (this.refreshTrigger)) // 增加refreshTrigger使ForEach重新构建
         }
       }
       .scrollable(ScrollDirection.Horizontal)
       .scrollBar(BarState.Off)
       .padding({ left: 20, right: 20, top: 10, bottom: 10 })
 
-      // 环境数据卡片
-      Row() {
-        ForEach(this.environmentData, (item: DeviceItem) => {
-          this.renderEnvironmentItem(item)
-        }, (item: DeviceItem) => item.id.toString())
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.SpaceBetween)
-      .padding({ left: 20, right: 20, top: 10, bottom: 20 })
+      // 基于选中的房间显示不同内容
+      if (this.rooms.find(room => room.id === 1 && room.isSelected) ||
+          this.rooms.find(room => room.id === 2 && room.isSelected) ||
+          this.rooms.find(room => room.id === 3 && room.isSelected)||
+          this.rooms.find(room => room.id === 4 && room.isSelected)) {
+        // 客厅/卫生间/厨房被选中时，显示卡片式界面
+        Column() {
+          Row() {
+            Button() {
+              Row({ space: 12 }) {
+                Image($r('app.media.AddDevicesys'))
+                  .width(28)
+                  .height(28)
+                  .fillColor('#1890ff')
+                
+                Text('添加设备')
+                  .fontSize(18)
+                  .fontColor('#1890ff')
+                  .fontWeight(FontWeight.Bold)
+              }
+            }
+            .backgroundColor('#ffffff')
+            .borderRadius(16)
+            .height(80)
+            .width('100%')
+            .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+            .onClick(() => {
+              console.info('添加设备按钮点击')
+            })
+          }
+          .width('100%')
+          .padding({ left: 20, right: 20, top: 15, bottom: 15 })
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .backgroundColor('#f5f5f5')
+      } else {
+        // 环境数据卡片
+        Row() {
+          ForEach(this.environmentData, (item: DeviceItem) => {
+            this.renderEnvironmentItem(item)
+          }, (item: DeviceItem) => item.id.toString())
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.SpaceBetween)
+        .padding({ left: 20, right: 20, top: 10, bottom: 20 })
 
-      // 设备控制列表
-      Column() {
-        Text('设备控制')
-          .fontSize(20)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333')
-          .alignSelf(ItemAlign.Start)
-          .margin({ bottom: 10 })
+        // 设备控制列表
+        Column() {
+          Text('设备控制')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#333')
+            .alignSelf(ItemAlign.Start)
+            .margin({ bottom: 10 })
 
-        ForEach(this.devices, (device: DeviceItem) => {
-          this.renderDeviceItem(device)
-        }, (device: DeviceItem) => device.id.toString())
+          ForEach(this.devices, (device: DeviceItem) => {
+            this.renderDeviceItem(device)
+          }, (device: DeviceItem) => device.id.toString())
+        }
+        .width('100%')
+        .padding({ left: 20, right: 20 })
       }
-      .width('100%')
-      .padding({ left: 20, right: 20 })
     }
     .width('100%')
     .height('100%')
@@ -366,6 +414,9 @@ struct MainPage {
 
   // 添加一个新方法用于获取天气数据
   aboutToAppear() {
+    // 初始触发刷新，确保第一次渲染时UI正确
+    this.refreshTrigger = 1;
+    
     // 获取天气数据
     const LOCATION_ID = '101230201' // 厦门
     const viewModel = new EnvironmentViewModel()
