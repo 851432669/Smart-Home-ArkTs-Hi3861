@@ -202,7 +202,7 @@ export struct SmartPage {
                       .height(28)
                       .fillColor('#1890ff')
                     
-                    Text('创建场景')
+                    Text('室内环境检测')
                       .fontSize(18)
                       .fontColor('#1890ff')
                       .fontWeight(FontWeight.Bold)
@@ -214,7 +214,7 @@ export struct SmartPage {
                 .width('100%')
                 .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
                 .onClick(() => {
-                  console.info('创建场景按钮点击')
+                  router.pushUrl({ url: 'pages/EnvironmentInfoPage' })
                 })
               }
             }

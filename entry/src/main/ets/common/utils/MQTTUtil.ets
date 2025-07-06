@@ -28,7 +28,7 @@ export default class MQTTUtil {
     //3、设置回调
     this.mqttAsyncClient.messageArrived(callback)
 
-    //4、订阅主题ems
+    //4、订阅主题ems，用于接收环境数据
     this.mqttAsyncClient.subscribe({
       topic: 'ems',
       qos: 2
