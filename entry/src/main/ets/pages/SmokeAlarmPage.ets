@@ -115,7 +115,7 @@ export struct SmokeAlarmPage {
           Row() {
             Button() {
               Row({ space: 8 }) {
-                Image($r('app.media.foreground'))
+                Image($r('app.media.back'))
                   .width(20)
                   .height(20)
                   .fillColor('#E53935')

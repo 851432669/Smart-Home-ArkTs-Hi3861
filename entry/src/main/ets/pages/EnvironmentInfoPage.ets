@@ -73,8 +73,9 @@ struct EnvironmentInfoPage {
           Image($r('app.media.back'))
             .width(24)
             .height(24)
-            .margin({ right: 10 })
             .onClick(() => router.back())
+
+          Blank()
 
           Text('室内环境监测')
             .fontSize(20)
