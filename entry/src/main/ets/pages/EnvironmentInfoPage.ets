@@ -4,6 +4,7 @@ import MQTTUtil from '../common/utils/MQTTUtil';
 import EnvironmentViewModel from '../viewmodel/EnvironmentViewModel';
 import { CellComponent } from '../view/CellComponent';
 import { StatusArray } from '../common/constants/Constant';
+import { AIComponent } from '../view/AIComponent';
 
 // 定义MQTT负载接口
 interface MQTTPayload {
@@ -87,119 +88,143 @@ struct EnvironmentInfoPage {
         .padding({ left: 16, right: 16 })
         .backgroundColor('#FFFFFF')
         
-        // 卡片直接放在主列里，不用Scroll
-        Column({ space: 10 }) {
-          // 环境卡片
-          Column() {
-            // 顶部标题和状态指示
-            Row() {
-              Text('室内环境参数')
-                .fontSize(18)
-                .fontWeight(FontWeight.Bold)
-                .fontColor('#333')
-
-              Blank()
-
-              Row() {
-                Text('状态：')
-                  .fontSize(16)
-                  .fontColor('#666')
-
-                Text(StatusArray[this.item.stat])
-                  .fontSize(16)
-                  .fontWeight(FontWeight.Bold)
-                  .fontColor(this.item.stat === 0 ? '#4CAF50' :
-                    this.item.stat === 1 ? '#FF9800' : '#F44336')
-              }
-            }
-            .width('100%')
-            .padding({ bottom: 8 })
-
-            // 数据显示
+        // 添加滚动容器
+        Scroll() {
+          // 卡片直接放在主列里
+          Column({ space: 10 }) {
+            // 环境卡片
             Column() {
-              CellComponent({
-                title: "空气温度：",
-                value: `${this.item.temp} °C`,
-                color: this.getTextColor(this.item.stat)
-              })
+              // 顶部标题和状态指示
+              Row() {
+                Text('室内环境参数')
+                  .fontSize(18)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor('#333')
 
-              // 使用Row替代Line组件
-              Row()
-                .width('94%')
-                .height(1)
-                .backgroundColor('#E0E0E0')
-                .margin({ top: 5, bottom: 5 })
+                Blank()
 
-              CellComponent({
-                title: "空气湿度：",
-                value: `${this.item.hum} %`,
-                color: this.getTextColor(this.item.stat)
-              })
+                Row() {
+                  Text('状态：')
+                    .fontSize(16)
+                    .fontColor('#666')
 
-              // 使用Row替代Line组件
-              Row()
-                .width('94%')
-                .height(1)
-                .backgroundColor('#E0E0E0')
-                .margin({ top: 5, bottom: 5 })
+                  Text(StatusArray[this.item.stat])
+                    .fontSize(16)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor(this.item.stat === 0 ? '#4CAF50' :
+                      this.item.stat === 1 ? '#FF9800' : '#F44336')
+                }
+              }
+              .width('100%')
+              .padding({ bottom: 8 })
 
-              CellComponent({
-                title: "可燃气体：",
-                value: `${this.item.gas} PPM`,
-                color: this.getTextColor(this.item.stat)
-              })
+              // 数据显示
+              Column() {
+                CellComponent({
+                  title: "空气温度：",
+                  value: `${this.item.temp} °C`,
+                  color: this.getTextColor(this.item.stat)
+                })
+
+                // 使用Row替代Line组件
+                Row()
+                  .width('94%')
+                  .height(1)
+                  .backgroundColor('#E0E0E0')
+                  .margin({ top: 5, bottom: 5 })
+
+                CellComponent({
+                  title: "空气湿度：",
+                  value: `${this.item.hum} %`,
+                  color: this.getTextColor(this.item.stat)
+                })
+
+                // 使用Row替代Line组件
+                Row()
+                  .width('94%')
+                  .height(1)
+                  .backgroundColor('#E0E0E0')
+                  .margin({ top: 5, bottom: 5 })
+
+                CellComponent({
+                  title: "可燃气体：",
+                  value: `${this.item.gas} PPM`,
+                  color: this.getTextColor(this.item.stat)
+                })
+              }
+              .backgroundColor(this.getCardColor(this.item.stat))
+              .padding(16)
+              .borderRadius(12)
+              .width('100%')
             }
-            .backgroundColor(this.getCardColor(this.item.stat))
-            .padding(16)
-            .borderRadius(12)
-            .width('100%')
-          }
-          .width('92%')
-          .padding(12)
-          .backgroundColor(Color.White)
-          .borderRadius(16)
-          .shadow({ radius: 6, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
-          .margin({ top: 2 }) // 最小间距，几乎无间距
+            .width('92%')
+            .padding(12)
+            .backgroundColor(Color.White)
+            .borderRadius(16)
+            .shadow({ radius: 6, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+            .margin({ top: 2 }) // 最小间距，几乎无间距
 
-          // 提示卡片
-          Column() {
-            Text('环境提示')
-              .fontSize(18)
-              .fontWeight(FontWeight.Bold)
-              .fontColor('#333')
-              .alignSelf(ItemAlign.Start)
-              .margin({ bottom: 8 })
-
-            Text(this.getEnvironmentTips())
-              .fontSize(15)
-              .fontColor('#333')
-              .lineHeight(22)
-              .margin({ bottom: 6 })
-
-            if (this.item.stat > 0) {
-              Text('安全建议')
+            // 提示卡片
+            Column() {
+              Text('环境提示')
                 .fontSize(18)
                 .fontWeight(FontWeight.Bold)
                 .fontColor('#333')
                 .alignSelf(ItemAlign.Start)
-                .margin({ top: 10, bottom: 6 })
+                .margin({ bottom: 8 })
 
-              Text(this.getSafetyTips())
+              Text(this.getEnvironmentTips())
                 .fontSize(15)
                 .fontColor('#333')
                 .lineHeight(22)
+                .margin({ bottom: 6 })
+
+              if (this.item.stat > 0) {
+                Text('安全建议')
+                  .fontSize(18)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor('#333')
+                  .alignSelf(ItemAlign.Start)
+                  .margin({ top: 10, bottom: 6 })
+
+                Text(this.getSafetyTips())
+                  .fontSize(15)
+                  .fontColor('#333')
+                  .lineHeight(22)
+              }
             }
+            .width('92%')
+            .padding(12)
+            .backgroundColor(Color.White)
+            .borderRadius(16)
+            .shadow({ radius: 6, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+            .margin({ bottom: 16 })
+            
+            // 添加AI评估卡片
+            Column() {
+              Text('AI智能评估')
+                .fontSize(18)
+                .fontWeight(FontWeight.Bold)
+                .fontColor('#333')
+                .alignSelf(ItemAlign.Start)
+                .margin({ bottom: 8 })
+              
+              // 使用AIComponent组件
+              AIComponent({ item: this.item })
+            }
+            .width('92%')
+            .padding(12)
+            .backgroundColor(Color.White)
+            .borderRadius(16)
+            .shadow({ radius: 6, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+            .margin({ bottom: 16 })
           }
-          .width('92%')
-          .padding(12)
-          .backgroundColor(Color.White)
-          .borderRadius(16)
-          .shadow({ radius: 6, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
-          .margin({ bottom: 16 })
+          .width('100%')
+          .alignItems(HorizontalAlign.Center)
+          .margin({ top: 0 })
         }
-        .width('100%')
-        .alignItems(HorizontalAlign.Center)
-        .margin({ top: 0 })
+        .layoutWeight(1)
+        .scrollBar(BarState.Auto)
       }
       .width('100%')
       .height('100%')
