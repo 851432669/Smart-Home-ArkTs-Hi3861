@@ -188,35 +188,54 @@ export struct SmartPage {
             
             // 第二个卡片 - 我的场景
             Column() {
-              Text('我的场景')
-                .fontSize(20)
-                .fontWeight(FontWeight.Bold)
-                .alignSelf(ItemAlign.Start)
-                .margin({ bottom: 12 })
-              
-              Row() {
-                Button() {
-                  Row({ space: 12 }) {
-                    Image($r('app.media.increase'))
-                      .width(28)
-                      .height(28)
-                      .fillColor('#1890ff')
+              // 使用Stack布局使图片占满整个卡片
+              Stack() {
+                Image($r('app.media.home_1'))
+                  .width('100%')
+                  .height(180)
+                  .borderRadius(16)
+                  .objectFit(ImageFit.Cover)
+                
+                // 黑色半透明遮罩层
+                Column()
+                  .width('100%')
+                  .height('100%')
+                  .backgroundColor('rgba(0, 0, 0, 0.4)')
+                  .borderRadius(16)
+                
+                // 左侧文字
+                Column({ space: 8 }) {
+                  Text('室内环境监测')
+                    .fontSize(24)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor(Color.White)
+                  
+                  Text('实时监测室内温湿度和气体浓度，保障居家安全')
+                    .fontSize(14)
+                    .fontColor('rgba(255, 255, 255, 0.8)')
+                    .width('90%')
                     
-                    Text('室内环境检测')
-                      .fontSize(18)
-                      .fontColor('#1890ff')
-                      .fontWeight(FontWeight.Bold)
-                  }
+                  Button('进入检测')
+                    .fontSize(14)
+                    .height(32)
+                    .width(90)
+                    .fontColor('#FFFFFF')
+                    .backgroundColor('rgba(24, 144, 255, 0.8)')
+                    .borderRadius(16)
+                    .margin({ top: 12 })
+                    .onClick(() => {
+                      router.pushUrl({ url: 'pages/EnvironmentInfoPage' })
+                    })
                 }
-                .backgroundColor('#ffffff')
-                .borderRadius(16)
-                .height(80)
-                .width('100%')
-                .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
-                .onClick(() => {
-                  router.pushUrl({ url: 'pages/EnvironmentInfoPage' })
-                })
+                .alignItems(HorizontalAlign.Start)
+                .justifyContent(FlexAlign.Center)
+                .height('100%')
+                .width('90%')
+                .padding({ left: '5%' })
               }
+              .width('100%')
+              .height(180)
+              .borderRadius(16)
             }
             .width('90%')
             .padding(16)

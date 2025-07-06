@@ -59,36 +59,42 @@ struct EnvironmentInfoPage {
   }
 
   build() {
-    Column() {
-      // 顶部标题栏
-      Row() {
-        Image($r('app.media.back'))
-          .width(24)
-          .height(24)
-          .margin({ right: 16 })
-          .onClick(() => router.back())
+    Stack({ alignContent: Alignment.Top }) {
+      // 背景
+      Column()
+        .width('100%')
+        .height('100%')
+        .backgroundColor('#F5F5F5')
+      
+      Column() {
+        // 顶部标题栏
+        Row() {
+          Image($r('app.media.back'))
+            .width(24)
+            .height(24)
+            .margin({ right: 10 })
+            .onClick(() => router.back())
 
-        Text('室内环境监测')
-          .fontSize(22)
-          .fontWeight(FontWeight.Bold)
-          .fontColor('#333')
+          Text('室内环境监测')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor('#333')
 
-        Blank()
-      }
-      .width('100%')
-      .height(60)
-      .padding({ left: 20, right: 20 })
-      .backgroundColor('#FFFFFF')
-
-      // 主要内容区域
-      Scroll() {
-        Column({ space: 20 }) {
+          Blank()
+        }
+        .width('100%')
+        .height(48)
+        .padding({ left: 16, right: 16 })
+        .backgroundColor('#FFFFFF')
+        
+        // 卡片直接放在主列里，不用Scroll
+        Column({ space: 10 }) {
           // 环境卡片
           Column() {
             // 顶部标题和状态指示
             Row() {
               Text('室内环境参数')
-                .fontSize(20)
+                .fontSize(18)
                 .fontWeight(FontWeight.Bold)
                 .fontColor('#333')
 
@@ -107,7 +113,7 @@ struct EnvironmentInfoPage {
               }
             }
             .width('100%')
-            .padding({ bottom: 16 })
+            .padding({ bottom: 8 })
 
             // 数据显示
             Column() {
@@ -122,7 +128,7 @@ struct EnvironmentInfoPage {
                 .width('94%')
                 .height(1)
                 .backgroundColor('#E0E0E0')
-                .margin({ top: 8, bottom: 8 })
+                .margin({ top: 5, bottom: 5 })
 
               CellComponent({
                 title: "空气湿度：",
@@ -135,7 +141,7 @@ struct EnvironmentInfoPage {
                 .width('94%')
                 .height(1)
                 .backgroundColor('#E0E0E0')
-                .margin({ top: 8, bottom: 8 })
+                .margin({ top: 5, bottom: 5 })
 
               CellComponent({
                 title: "可燃气体：",
@@ -148,26 +154,27 @@ struct EnvironmentInfoPage {
             .borderRadius(12)
             .width('100%')
           }
-          .width('90%')
-          .padding(16)
+          .width('92%')
+          .padding(12)
           .backgroundColor(Color.White)
           .borderRadius(16)
-          .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+          .shadow({ radius: 6, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+          .margin({ top: 2 }) // 最小间距，几乎无间距
 
           // 提示卡片
           Column() {
             Text('环境提示')
-              .fontSize(20)
+              .fontSize(18)
               .fontWeight(FontWeight.Bold)
               .fontColor('#333')
               .alignSelf(ItemAlign.Start)
-              .margin({ bottom: 12 })
+              .margin({ bottom: 8 })
 
             Text(this.getEnvironmentTips())
-              .fontSize(16)
+              .fontSize(15)
               .fontColor('#333')
-              .lineHeight(24)
-              .margin({ bottom: 8 })
+              .lineHeight(22)
+              .margin({ bottom: 6 })
 
             if (this.item.stat > 0) {
               Text('安全建议')
@@ -175,31 +182,28 @@ struct EnvironmentInfoPage {
                 .fontWeight(FontWeight.Bold)
                 .fontColor('#333')
                 .alignSelf(ItemAlign.Start)
-                .margin({ top: 12, bottom: 8 })
+                .margin({ top: 10, bottom: 6 })
 
               Text(this.getSafetyTips())
-                .fontSize(16)
+                .fontSize(15)
                 .fontColor('#333')
-                .lineHeight(24)
+                .lineHeight(22)
             }
           }
-          .width('90%')
-          .padding(16)
+          .width('92%')
+          .padding(12)
           .backgroundColor(Color.White)
           .borderRadius(16)
-          .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
-          .margin({ bottom: 20 })
+          .shadow({ radius: 6, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+          .margin({ bottom: 16 })
         }
         .width('100%')
         .alignItems(HorizontalAlign.Center)
-        .padding({ top: 20, bottom: 20 })
+        .margin({ top: 0 })
       }
-      .layoutWeight(1)
-      .scrollBar(BarState.Auto)
-      .backgroundColor('#F5F5F5')
+      .width('100%')
+      .height('100%')
     }
-    .width('100%')
-    .height('100%')
   }
 
   // 获取卡片背景色
