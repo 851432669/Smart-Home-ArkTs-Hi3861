@@ -78,7 +78,7 @@ struct MainPage {
 
   @State devices: DeviceItem[] = [
     { id: 0, name: '客厅灯', icon: $r('app.media.light'), status: '关闭', isOn: false },
-    { id: 1, name: '空调', icon: $r('app.media.ac'), status: '26℃', isOn: true },
+    { id: 1, name: '空调', icon: $r('app.media.ac'), status: '26℃', isOn: true, value: '26' },
     { id: 2, name: '电视', icon: $r('app.media.tv'), status: '关闭', isOn: false },
     { id: 3, name: '窗帘', icon: $r('app.media.curtain'), status: '开启', isOn: true },
     { id: 4, name: '音响', icon: $r('app.media.audio'), status: '关闭', isOn: false }
@@ -101,28 +101,62 @@ struct MainPage {
     this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
   }
 
+  // 修改 toggleDevice 方法中的空调处理
   toggleDevice(deviceId: number) {
-    // 修复: 显式创建 DeviceItem 对象
     this.devices = this.devices.map(device => {
       if (device.id === deviceId) {
         const isOn = !device.isOn;
+
+        if (device.name === '空调') {
+          // 手动复制空调属性
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            status: isOn ? (device.value ? `${device.value}℃` : '26℃') : '关闭',
+            isOn: isOn,
+            value: device.value || '26'
+          } as DeviceItem;
+        } else {
+          // 手动复制其他设备属性
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            status: isOn ? '开启' : '关闭',
+            isOn: isOn
+          } as DeviceItem;
+        }
+      }
+      return device;
+    });
+    
+    // 强制触发UI刷新
+    this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
+  }
+
+  // 修改 adjustACTemperature 方法
+  adjustACTemperature(value: string) {
+    this.devices = this.devices.map(device => {
+      if (device.name === '空调') {
+        // 手动复制属性（避免使用...展开运算符）
         return {
           id: device.id,
           name: device.name,
           icon: device.icon,
-          status: isOn ? '开启' : '关闭',
-          isOn: isOn
+          status: `${value}℃`,
+          isOn: device.isOn,
+          value: value
         } as DeviceItem;
       }
-      return {
-        id: device.id,
-        name: device.name,
-        icon: device.icon,
-        status: device.status,
-        isOn: device.isOn
-      } as DeviceItem;
+      return device;
     });
+    
+    // 强制触发UI刷新
+    this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
   }
+
+
 
   @Builder
   renderRoomItem(room: RoomItem) {
@@ -219,20 +253,71 @@ struct MainPage {
           .fontSize(18)
           .fontColor('#333')
 
-        Text(device.status)
-          .fontSize(14)
-          .fontColor('#999')
-          .margin({ top: 4 })
+        // 根据设备开关状态显示不同的状态文本
+        if (device.name === '空调' && device.isOn) {
+          Text(`${device.value || '26'}℃`)
+            .fontSize(14)
+            .fontColor('#999')
+            .margin({ top: 4 })
+        } else {
+          Text(device.isOn ? '开启' : '关闭')
+            .fontSize(14)
+            .fontColor('#999')
+            .margin({ top: 4 })
+        }
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
 
-      Toggle({ type: ToggleType.Switch, isOn: device.isOn })
-        .onChange((isOn) => {
-          if (isOn !== device.isOn) {
-            this.toggleDevice(device.id)
-          }
-        })
+      // 特殊处理空调设备，添加温度选择下拉框
+      if (device.name === '空调' && device.isOn) {
+        Row() {
+          Select([
+            { value: '16℃', icon: '' },
+            { value: '17℃', icon: '' },
+            { value: '18℃', icon: '' },
+            { value: '19℃', icon: '' },
+            { value: '20℃', icon: '' },
+            { value: '21℃', icon: '' },
+            { value: '22℃', icon: '' },
+            { value: '23℃', icon: '' },
+            { value: '24℃', icon: '' },
+            { value: '25℃', icon: '' },
+            { value: '26℃', icon: '' },
+            { value: '27℃', icon: '' },
+            { value: '28℃', icon: '' },
+            { value: '29℃', icon: '' },
+            { value: '30℃', icon: '' },
+          ])
+            .selected(parseInt(device.value || '26') - 16) // 默认选中当前温度
+            .value(`${device.value || '26'}℃`)
+            .font({ size: 16 })
+            .fontColor('#333')
+            .selectedOptionFont({ size: 16 })
+            .optionFont({ size: 16 })
+            .width(80)
+            .onSelect((index: number, value: string) => {
+              // 提取温度数值（去掉℃符号）
+              const tempValue = value.replace('℃', '');
+              this.adjustACTemperature(tempValue);
+            })
+
+          Toggle({ type: ToggleType.Switch, isOn: device.isOn })
+            .margin({ left: 10 })
+            .onChange((isOn) => {
+              if (isOn !== device.isOn) {
+                this.toggleDevice(device.id);
+              }
+            })
+        }
+      } else {
+        Toggle({ type: ToggleType.Switch, isOn: device.isOn })
+          .onChange((isOn) => {
+            if (isOn !== device.isOn) {
+              this.toggleDevice(device.id);
+            }
+          })
+      }
     }
     .padding(15)
     .backgroundColor('#ffffff')
@@ -242,6 +327,7 @@ struct MainPage {
     .width('100%')
   }
 
+  // 修改设备列表的ForEach部分，使用refreshTrigger作为key的一部分
   @Builder
   HomeContent() {
     Column() {
@@ -353,7 +439,7 @@ struct MainPage {
             Column() {
               ForEach(this.devices, (device: DeviceItem) => {
                 this.renderDeviceItem(device)
-              }, (device: DeviceItem) => device.id.toString())
+              }, (device: DeviceItem) => `${device.id}_${device.isOn}_${device.value || ''}_${this.refreshTrigger}`)
 
               // 在音响设备之后添加"添加设备"按钮
               Button() {
@@ -450,54 +536,54 @@ struct MainPage {
   aboutToAppear() {
     // 初始触发刷新
     this.refreshTrigger = 1;
-    
+
     // 直接使用全局数据管理器中的数据
     this.environmentData = globalDataManager.getEnvironmentData();
-    
+
     // 如果数据未预加载成功(极少情况)，尝试重新加载
     if (!globalDataManager.isLoaded()) {
       console.info('天气数据未预加载，尝试重新获取');
-      
+
       const LOCATION_ID = '101230201'; // 厦门
       const viewModel = new EnvironmentViewModel();
-      
+
       viewModel.fetchWeather(LOCATION_ID).then(() => {
         const data: EnvironmentDataItem[] = [
-          { 
-            id: 0, 
+          {
+            id: 0,
             name: '天气',
             icon: $r('app.media.weather'),
-            status: viewModel.weather, 
+            status: viewModel.weather,
             unit: '',
             weatherIcon: viewModel.getWeatherIcon()
           },
-          { 
-            id: 1, 
-            name: '温度', 
-            icon: $r('app.media.tem'), 
-            status: `${viewModel.temp}`, 
+          {
+            id: 1,
+            name: '温度',
+            icon: $r('app.media.tem'),
+            status: `${viewModel.temp}`,
             unit: '℃'
           },
-          { 
-            id: 2, 
-            name: '湿度', 
-            icon: $r('app.media.humidity'), 
-            status: `${viewModel.hum}`, 
-            unit: '%' 
+          {
+            id: 2,
+            name: '湿度',
+            icon: $r('app.media.humidity'),
+            status: `${viewModel.hum}`,
+            unit: '%'
           },
-          { 
-            id: 3, 
-            name: 'PM2.5', 
-            icon: $r('app.media.pm25_o'), 
-            status: '4', 
-            unit: '' 
+          {
+            id: 3,
+            name: 'PM2.5',
+            icon: $r('app.media.pm25_o'),
+            status: '4',
+            unit: ''
           },
         ];
-        
+
         // 更新数据并保存到全局管理器
         this.environmentData = data;
         globalDataManager.setEnvironmentData(data);
-        
+
         // 触发UI刷新
         this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
       }).catch((err: Error) => {
