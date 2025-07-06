@@ -348,12 +348,46 @@ struct MainPage {
             .alignSelf(ItemAlign.Start)
             .margin({ bottom: 10 })
 
-          ForEach(this.devices, (device: DeviceItem) => {
-            this.renderDeviceItem(device)
-          }, (device: DeviceItem) => device.id.toString())
+          // 将设备列表放入滚动容器中
+          Scroll() {
+            Column() {
+              ForEach(this.devices, (device: DeviceItem) => {
+                this.renderDeviceItem(device)
+              }, (device: DeviceItem) => device.id.toString())
+
+              // 在音响设备之后添加"添加设备"按钮
+              Button() {
+                Row({ space: 12 }) {
+                  Image($r('app.media.AddDevicesys'))
+                    .width(28)
+                    .height(28)
+                    .fillColor('#1890ff')
+                  
+                  Text('添加设备')
+                    .fontSize(18)
+                    .fontColor('#1890ff')
+                    .fontWeight(FontWeight.Bold)
+                }
+              }
+              .backgroundColor('#ffffff')
+              .borderRadius(12)
+              .height(72)
+              .width('100%')
+              .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
+              .margin({ top: 10, bottom: 80 }) // 增加底部间距，防止被底部导航栏遮挡
+              .onClick(() => {
+                console.info('添加设备按钮点击')
+              })
+            }
+          }
+          .scrollBar(BarState.Auto)
+          .edgeEffect(EdgeEffect.Spring)
+          .width('100%')
+          .layoutWeight(1) // 让滚动区域占满剩余空间
         }
         .width('100%')
         .padding({ left: 20, right: 20 })
+        .layoutWeight(1) // 让设备区域占满剩余空间
       }
     }
     .width('100%')
