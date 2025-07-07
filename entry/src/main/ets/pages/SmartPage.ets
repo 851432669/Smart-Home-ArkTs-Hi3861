@@ -85,11 +85,16 @@ export struct SmartPage {
     }, 2000);
   }
 
+  // 获取家庭名称
+  getHomeName(): string {
+    return globalDataManager.getHomeName();
+  }
+
   build() {
     Column() {
       // 顶部标题栏
       Row() {
-        Text('4612的家')
+        Text(this.getHomeName())
           .fontSize(24)
           .fontWeight(FontWeight.Bold)
           .fontColor('#333')

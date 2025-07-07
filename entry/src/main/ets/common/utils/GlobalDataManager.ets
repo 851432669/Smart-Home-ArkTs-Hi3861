@@ -19,6 +19,14 @@ export interface DeviceStatus {
   level?: number; // 适用于可调节设备
 }
 
+// 用户信息接口
+export interface UserInfo {
+  nickname: string;
+  account: string;
+  isVerified: boolean;
+  roomCount: number;
+}
+
 class GlobalDataManager {
   // 环境数据
   private environmentData: EnvironmentDataItem[] = [
@@ -58,35 +66,43 @@ class GlobalDataManager {
     {
       id: 'ac',
       name: '空调',
-      isOn: true,
+      isOn: false,  // 默认改为关闭
       temperature: 26
     },
     {
       id: 'livingRoomLight',
       name: '客厅灯',
-      isOn: true
+      isOn: false  // 默认改为关闭
     },
     {
       id: 'tv',
       name: '电视',
-      isOn: true
+      isOn: false  // 默认改为关闭
     },
     {
       id: 'curtain',
       name: '窗帘',
-      isOn: true
+      isOn: false  // 默认改为关闭
     },
     {
       id: 'robot',
       name: '扫地机',
-      isOn: false
+      isOn: false  // 默认为关闭
     },
     {
       id: 'audio',
       name: '音响',
-      isOn: true
+      isOn: false  // 默认改为关闭
     }
   ];
+
+  // 用户信息数据
+  private userInfo: UserInfo = {
+    nickname: '测试用户',
+    account: '5678910',
+    isVerified: true,
+    roomCount: 1
+  };
 
   // 数据是否已加载标志
   private isDataLoaded: boolean = false;
@@ -102,6 +118,15 @@ class GlobalDataManager {
     this.isDataLoaded = true;
   }
 
+  // 初始化设备状态 - 将所有设备设为关闭状态
+  initializeDeviceStatus(): void {
+    console.info('初始化所有设备为关闭状态');
+    // 遍历设备，将所有设备设为关闭状态
+    this.deviceStatus.forEach(device => {
+      device.isOn = false;
+    });
+  }
+
   // 获取所有设备状态
   getDeviceStatus(): DeviceStatus[] {
     return this.deviceStatus;
@@ -110,6 +135,43 @@ class GlobalDataManager {
   // 获取单个设备状态
   getDeviceById(deviceId: string): DeviceStatus | undefined {
     return this.deviceStatus.find(device => device.id === deviceId);
+  }
+
+  // 获取用户信息
+  getUserInfo(): UserInfo {
+    return this.userInfo;
+  }
+
+  // 更新用户昵称
+  updateUserNickname(nickname: string): void {
+    if (nickname && nickname.trim().length > 0) {
+      this.userInfo.nickname = nickname.trim();
+      console.info(`用户昵称已更新为: ${nickname}`);
+    }
+  }
+
+  // 更新用户账号
+  updateUserAccount(account: string): void {
+    if (account && account.trim().length > 0) {
+      this.userInfo.account = account.trim();
+    }
+  }
+
+  // 更新用户认证状态
+  updateUserVerificationStatus(isVerified: boolean): void {
+    this.userInfo.isVerified = isVerified;
+  }
+
+  // 更新房间数量
+  updateRoomCount(count: number): void {
+    if (count >= 0) {
+      this.userInfo.roomCount = count;
+    }
+  }
+
+  // 获取家庭名称
+  getHomeName(): string {
+    return `${this.userInfo.nickname}的家`;
   }
 
   // 设置单个设备状态

@@ -82,11 +82,11 @@ struct MainPage {
   ]
 
   @State devices: DeviceItem[] = [
-    { id: 0, name: '客厅灯', icon: $r('app.media.light'), status: '开启', isOn: true },
-    { id: 1, name: '空调', icon: $r('app.media.ac'), status: '26℃', isOn: true, value: '26' },
-    { id: 2, name: '电视', icon: $r('app.media.tv'), status: '开启', isOn: true },
-    { id: 3, name: '窗帘', icon: $r('app.media.curtain'), status: '开启', isOn: true },
-    { id: 4, name: '音响', icon: $r('app.media.audio'), status: '开启', isOn: true },
+    { id: 0, name: '客厅灯', icon: $r('app.media.light'), status: '关闭', isOn: false },
+    { id: 1, name: '空调', icon: $r('app.media.ac'), status: '关闭', isOn: false, value: '26' },
+    { id: 2, name: '电视', icon: $r('app.media.tv'), status: '关闭', isOn: false },
+    { id: 3, name: '窗帘', icon: $r('app.media.curtain'), status: '关闭', isOn: false },
+    { id: 4, name: '音响', icon: $r('app.media.audio'), status: '关闭', isOn: false },
     { id: 5, name: '扫地机器人', icon: $r('app.media.sweep'), status: '关闭', isOn: false }
   ]
 
@@ -394,6 +394,11 @@ struct MainPage {
     this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
   }
 
+  // 获取家庭名称
+  getHomeName(): string {
+    return globalDataManager.getHomeName();
+  }
+
   // 修改设备开关状态
   toggleDevice(deviceId: number) {
     this.devices = this.devices.map(device => {
@@ -678,7 +683,7 @@ struct MainPage {
     Column() {
       // 顶部标题栏 - 使用现有资源
       Row() {
-        Text('4612的家')
+        Text(this.getHomeName())
           .fontSize(24)
           .fontWeight(FontWeight.Bold)
           .fontColor('#333')

@@ -69,6 +69,11 @@ struct SplashPage {
   // 预加载数据
   async preloadData() {
     console.info('开始在SplashPage预加载数据');
+    
+    // 初始化所有设备为关闭状态
+    globalDataManager.initializeDeviceStatus();
+    console.info('已初始化所有设备为关闭状态');
+    
     let attempts = 0;
     while (attempts < 3) {
       try {
