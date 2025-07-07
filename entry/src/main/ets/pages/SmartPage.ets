@@ -20,6 +20,9 @@ export struct SmartPage {
   // 添加执行状态提示
   @State executionStatus: string = ''
   @State isExecuting: boolean = false
+  
+  // 轮播图当前索引
+  @State swiperIndex: number = 0
 
   // 页面显示时从全局状态获取最新数据
   aboutToAppear() {
@@ -239,16 +242,112 @@ export struct SmartPage {
                 .fontWeight(FontWeight.Bold)
                 .alignSelf(ItemAlign.Start)
 
-              // 探索内容
-              Row() {
-                Image($r('app.media.sofa_9181557_1280'))
-                  .width('100%')
-                  .height(160)
-                  .borderRadius(16)
-                  .objectFit(ImageFit.Cover)
+              // 探索内容 - 使用Swiper实现图片轮播
+              Stack() {
+                Swiper() {
+                  // 第一张广告图
+                  Stack() {
+                    Image($r('app.media.ad1'))
+                      .width('100%')
+                      .height('100%')
+                      .borderRadius(16)
+                      .objectFit(ImageFit.Cover)
+                      
+                    // 黑色半透明遮罩层（底部）
+                    Column()
+                      .width('100%')
+                      .height(60)
+                      .backgroundColor('rgba(0, 0, 0, 0.3)')
+                      .position({ x: 0, y: '100%' })
+                      .translate({ y: -60 })
+                      .borderRadius({ bottomLeft: 16, bottomRight: 16 })
+                      
+                    // 文字描述
+                    Text('舒适环保的智能家居')
+                      .fontSize(16)
+                      .fontColor(Color.White)
+                      .fontWeight(FontWeight.Bold)
+                      .position({ x: '5%', y: '100%' })
+                      .translate({ y: -40 })
+                  }
+                  
+                  // 第二张广告图
+                  Stack() {
+                    Image($r('app.media.ad2'))
+                      .width('100%')
+                      .height('100%')
+                      .borderRadius(16)
+                      .objectFit(ImageFit.Cover)
+                      
+                    // 黑色半透明遮罩层（底部）
+                    Column()
+                      .width('100%')
+                      .height(60)
+                      .backgroundColor('rgba(0, 0, 0, 0.3)')
+                      .position({ x: 0, y: '100%' })
+                      .translate({ y: -60 })
+                      .borderRadius({ bottomLeft: 16, bottomRight: 16 })
+                      
+                    // 文字描述
+                    Text('提升家居智能化体验')
+                      .fontSize(16)
+                      .fontColor(Color.White)
+                      .fontWeight(FontWeight.Bold)
+                      .position({ x: '5%', y: '100%' })
+                      .translate({ y: -40 })
+                  }
+                  
+                  // 第三张广告图
+                  Stack() {
+                    Image($r('app.media.ad3'))
+                      .width('100%')
+                      .height('100%')
+                      .borderRadius(16)
+                      .objectFit(ImageFit.Cover)
+                      
+                    // 黑色半透明遮罩层（底部）
+                    Column()
+                      .width('100%')
+                      .height(60)
+                      .backgroundColor('rgba(0, 0, 0, 0.3)')
+                      .position({ x: 0, y: '100%' })
+                      .translate({ y: -60 })
+                      .borderRadius({ bottomLeft: 16, bottomRight: 16 })
+                      
+                    // 文字描述
+                    Text('节能减排，绿色生活')
+                      .fontSize(16)
+                      .fontColor(Color.White)
+                      .fontWeight(FontWeight.Bold)
+                      .position({ x: '5%', y: '100%' })
+                      .translate({ y: -40 })
+                  }
+                }
+                .index(this.swiperIndex)
+                .autoPlay(true)
+                .interval(3000)
+                .indicatorStyle({
+                  color: '#8F8F8F',
+                  selectedColor: '#FFFFFF',
+                  size: 8,
+                  // 删除不支持的selectedSize属性
+                  // 使用官方支持的属性
+                  right: 16,
+                  bottom: 16
+                })
+                .indicator(true)
+                .loop(true)
+                .duration(1000)
+                .itemSpace(0)
+                .curve(Curve.Linear)
+                .onChange((index: number) => {
+                  this.swiperIndex = index;
+                })
+                .width('100%')
+                .height('100%')
               }
               .width('90%')
-              .height(160)
+              .height(200)
               .shadow({ radius: 8, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 2 })
             }
             .width('100%')
