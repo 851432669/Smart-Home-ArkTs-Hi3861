@@ -1,4 +1,6 @@
 import router from '@ohos.router'
+import promptAction from '@ohos.promptAction' // 导入提示框组件
+import { globalDataManager } from '../common/utils/GlobalDataManager'
 
 @Component
 export struct SmartPage {
@@ -6,6 +8,79 @@ export struct SmartPage {
   @State currentTab: number = 1 // 默认选中"智能"标签
   @State selectedCategory: string = '推荐' // 新增：分类选择状态
   onTabChange?: (index: number) => void
+
+  // 添加离家模式的状态管理
+  @State isACOn: boolean = true
+  @State isLightOn: boolean = true
+  @State isTVOn: boolean = true
+  @State isCurtainOn: boolean = true
+  @State isAudioOn: boolean = true
+  @State isRobotOn: boolean = false
+  
+  // 添加执行状态提示
+  @State executionStatus: string = ''
+  @State isExecuting: boolean = false
+
+  // 页面显示时从全局状态获取最新数据
+  aboutToAppear() {
+    const acDevice = globalDataManager.getDeviceById('ac');
+    const lightDevice = globalDataManager.getDeviceById('livingRoomLight');
+    const tvDevice = globalDataManager.getDeviceById('tv');
+    const curtainDevice = globalDataManager.getDeviceById('curtain');
+    const audioDevice = globalDataManager.getDeviceById('audio');
+    const robotDevice = globalDataManager.getDeviceById('robot');
+    
+    if(acDevice) this.isACOn = acDevice.isOn;
+    if(lightDevice) this.isLightOn = lightDevice.isOn;
+    if(tvDevice) this.isTVOn = tvDevice.isOn;
+    if(curtainDevice) this.isCurtainOn = curtainDevice.isOn;
+    if(audioDevice) this.isAudioOn = audioDevice.isOn;
+    if(robotDevice) this.isRobotOn = robotDevice.isOn;
+    
+    // 检查是否所有设备都是离家模式状态
+    if(!this.isACOn && !this.isLightOn && !this.isTVOn && !this.isCurtainOn && !this.isAudioOn && this.isRobotOn) {
+      this.executionStatus = '已执行高效离家模式：关闭空调、客厅灯、电视、窗帘和音响，开启扫地机';
+    }
+  }
+
+  // 离家模式执行函数
+  leaveHome() {
+    console.info('执行离家模式...');
+    this.isExecuting = true;
+    this.executionStatus = '正在执行离家模式...';
+    
+    // 更新全局状态
+    globalDataManager.updateDevicesForScene('leaveHome');
+    
+    // 同步更新本地状态以更新UI
+    const acDevice = globalDataManager.getDeviceById('ac');
+    const lightDevice = globalDataManager.getDeviceById('livingRoomLight');
+    const tvDevice = globalDataManager.getDeviceById('tv');
+    const curtainDevice = globalDataManager.getDeviceById('curtain');
+    const audioDevice = globalDataManager.getDeviceById('audio');
+    const robotDevice = globalDataManager.getDeviceById('robot');
+    
+    if(acDevice) this.isACOn = acDevice.isOn;
+    if(lightDevice) this.isLightOn = lightDevice.isOn;
+    if(tvDevice) this.isTVOn = tvDevice.isOn;
+    if(curtainDevice) this.isCurtainOn = curtainDevice.isOn;
+    if(audioDevice) this.isAudioOn = audioDevice.isOn;
+    if(robotDevice) this.isRobotOn = robotDevice.isOn;
+    
+    // 更新执行状态提示
+    this.executionStatus = '已执行高效离家模式：关闭空调、客厅灯、电视、窗帘和音响，开启扫地机';
+    
+    // 显示操作成功的提示
+    promptAction.showToast({
+      message: '已执行离家模式：已关闭空调、客厅灯、电视、窗帘和音响，已开启扫地机',
+      duration: 2000,
+    });
+    
+    // 执行完成后恢复按钮状态
+    setTimeout(() => {
+      this.isExecuting = false;
+    }, 2000);
+  }
 
   build() {
     Column() {
@@ -70,7 +145,7 @@ export struct SmartPage {
             Stack() {
               Image($r('app.media.living_room_1835923_1280'))
                 .width('100%')
-                .height(220)
+                .height(260)
                 .borderRadius(16)
                 .objectFit(ImageFit.Cover)
                 .brightness(0.7)
@@ -85,13 +160,74 @@ export struct SmartPage {
                   .fontSize(16)
                   .fontColor('rgba(255, 255, 255, 0.8)')
                   .margin({ top: 5 })
+                
+                // 添加执行按钮
+                Button('一键执行')
+                  .fontSize(16)
+                  .height(40)
+                  .width(120)
+                  .fontColor('#FFFFFF')
+                  .backgroundColor('rgba(24, 144, 255, 0.9)')
+                  .borderRadius(20)
+                  .margin({ top: 15 })
+                  .onClick(() => {
+                    this.leaveHome()
+                  })
+                  .enabled(!this.isExecuting)
+                
+                // 显示当前设备状态
+                Row({ space: 10 }) {
+                  Text(`空调: ${this.isACOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                  
+                  Text(`客厅灯: ${this.isLightOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                }
+                .margin({ top: 10 })
+                
+                Row({ space: 10 }) {
+                  Text(`电视: ${this.isTVOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                    
+                  Text(`窗帘: ${this.isCurtainOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                }
+                .margin({ top: 5 })
+                
+                Row({ space: 10 }) {
+                  Text(`音响: ${this.isAudioOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                    
+                  Text(`扫地机: ${this.isRobotOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                }
+                .margin({ top: 5 })
+                
+                if(this.executionStatus) {
+                  Text(this.executionStatus)
+                    .fontSize(14)
+                    .fontColor('#FFEB3B')
+                    .fontWeight(FontWeight.Bold)
+                    .width('90%')
+                    .margin({ top: 10 })
+                    .textAlign(TextAlign.Center)
+                    .backgroundColor('rgba(0, 0, 0, 0.5)')
+                    .padding(8)
+                    .borderRadius(8)
+                }
               }
-              .position({ x: '5%', y: '70%' })
+              .position({ x: '5%', y: '50%' })
               .alignItems(HorizontalAlign.Start)
               .width('90%')
             }
             .width('90%')
-            .height(220)
+            .height(260)
             .borderRadius(16)
             .shadow({ radius: 10, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 5 })
             .margin({ top: 20 })

@@ -10,6 +10,15 @@ export interface EnvironmentDataItem {
   weatherIcon?: Resource;
 }
 
+// 设备状态接口
+export interface DeviceStatus {
+  id: string;
+  name: string;
+  isOn: boolean;
+  temperature?: number; // 适用于空调
+  level?: number; // 适用于可调节设备
+}
+
 class GlobalDataManager {
   // 环境数据
   private environmentData: EnvironmentDataItem[] = [
@@ -44,6 +53,41 @@ class GlobalDataManager {
     },
   ];
 
+  // 设备状态数据 - 确保初始状态与UI一致
+  private deviceStatus: DeviceStatus[] = [
+    {
+      id: 'ac',
+      name: '空调',
+      isOn: true,
+      temperature: 26
+    },
+    {
+      id: 'livingRoomLight',
+      name: '客厅灯',
+      isOn: true
+    },
+    {
+      id: 'tv',
+      name: '电视',
+      isOn: true
+    },
+    {
+      id: 'curtain',
+      name: '窗帘',
+      isOn: true
+    },
+    {
+      id: 'robot',
+      name: '扫地机',
+      isOn: false
+    },
+    {
+      id: 'audio',
+      name: '音响',
+      isOn: true
+    }
+  ];
+
   // 数据是否已加载标志
   private isDataLoaded: boolean = false;
 
@@ -56,6 +100,38 @@ class GlobalDataManager {
   setEnvironmentData(data: EnvironmentDataItem[]): void {
     this.environmentData = data;
     this.isDataLoaded = true;
+  }
+
+  // 获取所有设备状态
+  getDeviceStatus(): DeviceStatus[] {
+    return this.deviceStatus;
+  }
+
+  // 获取单个设备状态
+  getDeviceById(deviceId: string): DeviceStatus | undefined {
+    return this.deviceStatus.find(device => device.id === deviceId);
+  }
+
+  // 设置单个设备状态
+  setDeviceStatus(deviceId: string, isOn: boolean): void {
+    const device = this.deviceStatus.find(device => device.id === deviceId);
+    if (device) {
+      device.isOn = isOn;
+    }
+  }
+
+  // 批量更新设备状态 - 用于场景模式
+  updateDevicesForScene(scene: string): void {
+    if (scene === 'leaveHome') {
+      // 离家模式：关闭所有设备，只开启扫地机
+      this.setDeviceStatus('ac', false);         // 关闭空调
+      this.setDeviceStatus('livingRoomLight', false); // 关闭客厅灯
+      this.setDeviceStatus('tv', false);         // 关闭电视
+      this.setDeviceStatus('curtain', false);    // 关闭窗帘
+      this.setDeviceStatus('audio', false);      // 关闭音响
+      this.setDeviceStatus('robot', true);       // 开启扫地机
+    }
+    // 可以添加其他场景...
   }
 
   // 检查数据是否已加载

@@ -3,7 +3,12 @@ import { EnvMonitorPage } from './EnvMonitorPage'
 import { SmartPage } from './SmartPage'
 import { ProfilePage } from './ProfilePage'
 import EnvironmentViewModel from '../viewmodel/EnvironmentViewModel'
-import { globalDataManager, EnvironmentDataItem } from '../common/utils/GlobalDataManager';
+import { globalDataManager, EnvironmentDataItem, DeviceStatus } from '../common/utils/GlobalDataManager';
+
+// 定义路由参数接口
+interface RouterParams {
+  refreshFlag?: number;
+}
 
 // 定义接口类型
 interface TabItem {
@@ -77,16 +82,303 @@ struct MainPage {
   ]
 
   @State devices: DeviceItem[] = [
-    { id: 0, name: '客厅灯', icon: $r('app.media.light'), status: '关闭', isOn: false },
+    { id: 0, name: '客厅灯', icon: $r('app.media.light'), status: '开启', isOn: true },
     { id: 1, name: '空调', icon: $r('app.media.ac'), status: '26℃', isOn: true, value: '26' },
-    { id: 2, name: '电视', icon: $r('app.media.tv'), status: '关闭', isOn: false },
+    { id: 2, name: '电视', icon: $r('app.media.tv'), status: '开启', isOn: true },
     { id: 3, name: '窗帘', icon: $r('app.media.curtain'), status: '开启', isOn: true },
-    { id: 4, name: '音响', icon: $r('app.media.audio'), status: '关闭', isOn: false },
+    { id: 4, name: '音响', icon: $r('app.media.audio'), status: '开启', isOn: true },
     { id: 5, name: '扫地机器人', icon: $r('app.media.sweep'), status: '关闭', isOn: false }
   ]
 
   // 添加一个辅助的触发刷新的变量
   @State refreshTrigger: number = 0
+
+    // 接收路由参数
+  @State params: RouterParams = {};
+  
+  // 添加定时器ID，用于实时检查设备状态更新
+  private timerId: number = -1;
+
+  // 初始化，合并了两个aboutToAppear函数
+  aboutToAppear() {
+    // 初始触发刷新
+    this.refreshTrigger = 1;
+    
+    // 同步全局设备状态
+    this.syncDevicesWithGlobalState();
+    
+    // 直接使用全局数据管理器中的数据
+    this.environmentData = globalDataManager.getEnvironmentData();
+
+    // 如果数据未预加载成功(极少情况)，尝试重新加载
+    if (!globalDataManager.isLoaded()) {
+      console.info('天气数据未预加载，尝试重新获取');
+
+      const LOCATION_ID = '101230201'; // 厦门
+      const viewModel = new EnvironmentViewModel();
+
+      viewModel.fetchWeather(LOCATION_ID).then(() => {
+        const data: EnvironmentDataItem[] = [
+          {
+            id: 0,
+            name: '天气',
+            icon: $r('app.media.weather'),
+            status: viewModel.weather,
+            unit: '',
+            weatherIcon: viewModel.getWeatherIcon()
+          },
+          {
+            id: 1,
+            name: '温度',
+            icon: $r('app.media.tem'),
+            status: `${viewModel.temp}`,
+            unit: '℃'
+          },
+          {
+            id: 2,
+            name: '湿度',
+            icon: $r('app.media.humidity'),
+            status: `${viewModel.hum}`,
+            unit: '%'
+          },
+          {
+            id: 3,
+            name: 'PM2.5',
+            icon: $r('app.media.pm25_o'),
+            status: '4',
+            unit: ''
+          },
+        ];
+
+        // 更新数据并保存到全局管理器
+        this.environmentData = data;
+        globalDataManager.setEnvironmentData(data);
+
+        // 触发UI刷新
+        this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
+      }).catch((err: Error) => {
+        console.error("获取天气数据失败", err.message);
+      });
+    }
+    
+    // 添加实时设备状态检查
+    this.startDeviceStatusMonitor();
+  }
+  
+  // 组件销毁时清除定时器
+  aboutToDisappear() {
+    this.stopDeviceStatusMonitor();
+  }
+  
+  // 开始监控设备状态变化
+  startDeviceStatusMonitor() {
+    // 清除可能存在的定时器
+    this.stopDeviceStatusMonitor();
+    
+    // 每秒检查一次设备状态变化
+    this.timerId = setInterval(() => {
+      // 检查设备状态是否有变化
+      const anyDeviceChanged = this.checkDeviceStatusChanges();
+      if (anyDeviceChanged) {
+        console.info('检测到设备状态变化，正在更新UI...');
+        // 如果有变化，同步状态并刷新UI
+        this.syncDevicesWithGlobalState();
+      }
+    }, 1000);
+    
+    console.info('已启动设备状态监控');
+  }
+  
+  // 停止监控设备状态
+  stopDeviceStatusMonitor() {
+    if (this.timerId !== -1) {
+      clearInterval(this.timerId);
+      this.timerId = -1;
+      console.info('已停止设备状态监控');
+    }
+  }
+  
+  // 检查设备状态是否有变化
+  checkDeviceStatusChanges(): boolean {
+    // 获取全局设备状态
+    const globalLightStatus = globalDataManager.getDeviceById('livingRoomLight')?.isOn;
+    const globalACStatus = globalDataManager.getDeviceById('ac')?.isOn;
+    const globalTVStatus = globalDataManager.getDeviceById('tv')?.isOn;
+    const globalCurtainStatus = globalDataManager.getDeviceById('curtain')?.isOn;
+    const globalAudioStatus = globalDataManager.getDeviceById('audio')?.isOn;
+    const globalRobotStatus = globalDataManager.getDeviceById('robot')?.isOn;
+    
+    // 查找本地设备状态
+    const localLightDevice = this.devices.find(d => d.name === '客厅灯');
+    const localACDevice = this.devices.find(d => d.name === '空调');
+    const localTVDevice = this.devices.find(d => d.name === '电视');
+    const localCurtainDevice = this.devices.find(d => d.name === '窗帘');
+    const localAudioDevice = this.devices.find(d => d.name === '音响');
+    const localRobotDevice = this.devices.find(d => d.name === '扫地机器人');
+    
+    // 检查是否有状态不一致
+    if (globalLightStatus !== undefined && localLightDevice && globalLightStatus !== localLightDevice.isOn) return true;
+    if (globalACStatus !== undefined && localACDevice && globalACStatus !== localACDevice.isOn) return true;
+    if (globalTVStatus !== undefined && localTVDevice && globalTVStatus !== localTVDevice.isOn) return true;
+    if (globalCurtainStatus !== undefined && localCurtainDevice && globalCurtainStatus !== localCurtainDevice.isOn) return true;
+    if (globalAudioStatus !== undefined && localAudioDevice && globalAudioStatus !== localAudioDevice.isOn) return true;
+    if (globalRobotStatus !== undefined && localRobotDevice && globalRobotStatus !== localRobotDevice.isOn) return true;
+    
+    return false;
+  }
+
+  // 强制刷新函数
+  forceRefresh() {
+    console.info('正在强制刷新设备状态...');
+    
+    // 强制覆盖本地设备状态
+    this.devices = [
+      { 
+        id: 0, 
+        name: '客厅灯', 
+        icon: $r('app.media.light'), 
+        status: globalDataManager.getDeviceById('livingRoomLight')?.isOn ? '开启' : '关闭', 
+        isOn: globalDataManager.getDeviceById('livingRoomLight')?.isOn || false 
+      },
+      { 
+        id: 1, 
+        name: '空调', 
+        icon: $r('app.media.ac'), 
+        status: globalDataManager.getDeviceById('ac')?.isOn ? '26℃' : '关闭', 
+        isOn: globalDataManager.getDeviceById('ac')?.isOn || false,
+        value: '26' 
+      },
+      { 
+        id: 2, 
+        name: '电视', 
+        icon: $r('app.media.tv'), 
+        status: globalDataManager.getDeviceById('tv')?.isOn ? '开启' : '关闭', 
+        isOn: globalDataManager.getDeviceById('tv')?.isOn || false 
+      },
+      { 
+        id: 3, 
+        name: '窗帘', 
+        icon: $r('app.media.curtain'), 
+        status: globalDataManager.getDeviceById('curtain')?.isOn ? '开启' : '关闭', 
+        isOn: globalDataManager.getDeviceById('curtain')?.isOn || false 
+      },
+      { 
+        id: 4, 
+        name: '音响', 
+        icon: $r('app.media.audio'), 
+        status: globalDataManager.getDeviceById('audio')?.isOn ? '开启' : '关闭', 
+        isOn: globalDataManager.getDeviceById('audio')?.isOn || false 
+      },
+      { 
+        id: 5, 
+        name: '扫地机器人', 
+        icon: $r('app.media.sweep'), 
+        status: globalDataManager.getDeviceById('robot')?.isOn ? '开启' : '关闭', 
+        isOn: globalDataManager.getDeviceById('robot')?.isOn || false 
+      }
+    ];
+    
+    console.info('设备状态已强制更新，客厅灯状态：' + (this.devices[0].isOn ? '开启' : '关闭'));
+    console.info('设备状态已强制更新，扫地机状态：' + (this.devices[5].isOn ? '开启' : '关闭'));
+    
+    // 触发UI更新
+    this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
+  }
+
+  // 从全局状态同步设备数据到本地状态
+  syncDevicesWithGlobalState() {
+    console.info('同步设备状态到UI...');
+    const globalDevices = globalDataManager.getDeviceStatus();
+    
+    // 更新本地设备状态
+    this.devices = this.devices.map(device => {
+      if (device.name === '客厅灯') {
+        const globalDevice = globalDataManager.getDeviceById('livingRoomLight');
+        if (globalDevice) {
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            isOn: globalDevice.isOn,
+            status: globalDevice.isOn ? '开启' : '关闭'
+          };
+        }
+      } 
+      else if (device.name === '空调') {
+        const globalDevice = globalDataManager.getDeviceById('ac');
+        if (globalDevice) {
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            isOn: globalDevice.isOn,
+            status: globalDevice.isOn ? `${device.value}℃` : '关闭',
+            value: device.value
+          };
+        }
+      }
+      else if (device.name === '电视') {
+        const globalDevice = globalDataManager.getDeviceById('tv');
+        if (globalDevice) {
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            isOn: globalDevice.isOn,
+            status: globalDevice.isOn ? '开启' : '关闭'
+          };
+        }
+      }
+      else if (device.name === '窗帘') {
+        const globalDevice = globalDataManager.getDeviceById('curtain');
+        if (globalDevice) {
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            isOn: globalDevice.isOn,
+            status: globalDevice.isOn ? '开启' : '关闭'
+          };
+        }
+      }
+      else if (device.name === '音响') {
+        const globalDevice = globalDataManager.getDeviceById('audio');
+        if (globalDevice) {
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            isOn: globalDevice.isOn,
+            status: globalDevice.isOn ? '开启' : '关闭'
+          };
+        }
+      }
+      else if (device.name === '扫地机器人') {
+        const globalDevice = globalDataManager.getDeviceById('robot');
+        if (globalDevice) {
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            isOn: globalDevice.isOn,
+            status: globalDevice.isOn ? '开启' : '关闭'
+          };
+        }
+      }
+      // 其他设备不变
+      return device;
+    });
+    
+    // 触发UI更新
+    this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
+    console.info(`设备状态已更新，refreshTrigger = ${this.refreshTrigger}`);
+  }
+
+  // 每次页面显示时执行
+  onPageShow() {
+    // 同步设备状态
+    this.syncDevicesWithGlobalState();
+  }
 
   selectRoom(roomId: number) {
     // 修复: 显式创建 RoomItem 对象
@@ -102,14 +394,15 @@ struct MainPage {
     this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
   }
 
-  // 修改 toggleDevice 方法中的空调处理
+  // 修改设备开关状态
   toggleDevice(deviceId: number) {
     this.devices = this.devices.map(device => {
       if (device.id === deviceId) {
         const isOn = !device.isOn;
-
+        
+        // 同步到全局状态
         if (device.name === '空调') {
-          // 手动复制空调属性
+          globalDataManager.setDeviceStatus('ac', isOn);
           return {
             id: device.id,
             name: device.name,
@@ -118,8 +411,59 @@ struct MainPage {
             isOn: isOn,
             value: device.value || '26'
           } as DeviceItem;
-        } else {
-          // 手动复制其他设备属性
+        } 
+        else if (device.name === '客厅灯') {
+          globalDataManager.setDeviceStatus('livingRoomLight', isOn);
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            status: isOn ? '开启' : '关闭',
+            isOn: isOn
+          } as DeviceItem;
+        }
+        else if (device.name === '电视') {
+          globalDataManager.setDeviceStatus('tv', isOn);
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            status: isOn ? '开启' : '关闭',
+            isOn: isOn
+          } as DeviceItem;
+        }
+        else if (device.name === '窗帘') {
+          globalDataManager.setDeviceStatus('curtain', isOn);
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            status: isOn ? '开启' : '关闭',
+            isOn: isOn
+          } as DeviceItem;
+        }
+        else if (device.name === '音响') {
+          globalDataManager.setDeviceStatus('audio', isOn);
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            status: isOn ? '开启' : '关闭',
+            isOn: isOn
+          } as DeviceItem;
+        }
+        else if (device.name === '扫地机器人') {
+          globalDataManager.setDeviceStatus('robot', isOn);
+          return {
+            id: device.id,
+            name: device.name,
+            icon: device.icon,
+            status: isOn ? '开启' : '关闭',
+            isOn: isOn
+          } as DeviceItem;
+        }
+        else {
+          // 其他设备只更新本地状态
           return {
             id: device.id,
             name: device.name,
@@ -531,65 +875,5 @@ struct MainPage {
     }
     .width('100%')
     .height('100%')
-  }
-
-  // 添加一个新方法用于获取天气数据
-  aboutToAppear() {
-    // 初始触发刷新
-    this.refreshTrigger = 1;
-
-    // 直接使用全局数据管理器中的数据
-    this.environmentData = globalDataManager.getEnvironmentData();
-
-    // 如果数据未预加载成功(极少情况)，尝试重新加载
-    if (!globalDataManager.isLoaded()) {
-      console.info('天气数据未预加载，尝试重新获取');
-
-      const LOCATION_ID = '101230201'; // 厦门
-      const viewModel = new EnvironmentViewModel();
-
-      viewModel.fetchWeather(LOCATION_ID).then(() => {
-        const data: EnvironmentDataItem[] = [
-          {
-            id: 0,
-            name: '天气',
-            icon: $r('app.media.weather'),
-            status: viewModel.weather,
-            unit: '',
-            weatherIcon: viewModel.getWeatherIcon()
-          },
-          {
-            id: 1,
-            name: '温度',
-            icon: $r('app.media.tem'),
-            status: `${viewModel.temp}`,
-            unit: '℃'
-          },
-          {
-            id: 2,
-            name: '湿度',
-            icon: $r('app.media.humidity'),
-            status: `${viewModel.hum}`,
-            unit: '%'
-          },
-          {
-            id: 3,
-            name: 'PM2.5',
-            icon: $r('app.media.pm25_o'),
-            status: '4',
-            unit: ''
-          },
-        ];
-
-        // 更新数据并保存到全局管理器
-        this.environmentData = data;
-        globalDataManager.setEnvironmentData(data);
-
-        // 触发UI刷新
-        this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
-      }).catch((err: Error) => {
-        console.error("获取天气数据失败", err.message);
-      });
-    }
   }
 }
