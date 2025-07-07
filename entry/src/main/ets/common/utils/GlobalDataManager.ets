@@ -154,6 +154,7 @@ class GlobalDataManager {
   updateUserAccount(account: string): void {
     if (account && account.trim().length > 0) {
       this.userInfo.account = account.trim();
+      console.info(`用户账号ID已更新为: ${account}`);
     }
   }
 

@@ -1,6 +1,7 @@
 import router from '@ohos.router'
 import preferences from '@ohos.data.preferences'
 import http from '@ohos.net.http'
+import { globalDataManager } from '../common/utils/GlobalDataManager'
 
 @Entry
 @Component
@@ -203,6 +204,9 @@ struct Index {
       const savedPassword = await store.get(this.username, '')
 
       if (savedPassword === this.password) {
+        // 登录成功后，将当前用户名(登录ID)保存到全局管理器中
+        globalDataManager.updateUserAccount(this.username)
+        
         this.message = '登录成功'
         setTimeout(() => {
           router.pushUrl({ url: 'pages/MainPage' })

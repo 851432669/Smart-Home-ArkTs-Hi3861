@@ -73,6 +73,12 @@ export struct ProfilePage {
   // 用户信息状态
   @State userInfo: UserInfo = globalDataManager.getUserInfo()
   
+  // 在页面显示时获取最新的用户信息
+  aboutToAppear() {
+    this.userInfo = globalDataManager.getUserInfo()
+    console.info(`ProfilePage - 当前用户账号ID: ${this.userInfo.account}`)
+  }
+  
   // 昵称编辑对话框控制器
   dialogController: CustomDialogController = new CustomDialogController({
     builder: NicknameEditDialog({
@@ -154,6 +160,7 @@ export struct ProfilePage {
               .fontSize(20)
               .fontWeight(FontWeight.Bold)
               .fontColor('#333')
+              .onClick(() => this.editNickname()) // 添加点击事件，点击昵称文字直接编辑
               
             Image($r('app.media.index2_unused')) // 使用现有资源作为编辑图标
               .width(20)
