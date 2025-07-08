@@ -690,7 +690,7 @@ struct MainPage {
 
         Blank()
 
-        // 添加设备按钮 (替换原来的烟雾报警按钮)
+        // 添加设备按钮 
         Button() {
           Row({ space: 8 }) {
             Image($r('app.media.increase'))

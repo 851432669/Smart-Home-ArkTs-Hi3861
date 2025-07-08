@@ -1,10 +1,143 @@
 import router from '@ohos.router'
 import promptAction from '@ohos.promptAction'
-import { globalDataManager, UserInfo } from '../common/utils/GlobalDataManager'
+import { globalDataManager, UserInfo, RoomItem } from '../common/utils/GlobalDataManager'
 import { photoAccessHelper } from '@kit.MediaLibraryKit'
 import { BusinessError } from '@kit.BasicServicesKit'
 import { cameraPicker } from '@kit.CameraKit'
 import { camera } from '@kit.CameraKit'
+
+// 定义房间管理对话框组件
+@CustomDialog
+struct RoomManageDialog {
+  controller: CustomDialogController
+  @State roomName: string = ''
+  onConfirm: (roomName: string) => void = () => {}
+  
+  build() {
+    Column() {
+      Text('添加房间')
+        .fontSize(20)
+        .fontWeight(FontWeight.Medium)
+        .margin({ top: 10, bottom: 10 })
+      
+      TextInput({ placeholder: '请输入房间名称' })
+        .width('90%')
+        .height(50)
+        .margin({ bottom: 10 })
+        .onChange((value: string) => {
+          this.roomName = value
+        })
+      
+      Flex({ justifyContent: FlexAlign.SpaceAround }) {
+        Button('取消')
+          .onClick(() => {
+            this.controller.close()
+          })
+          .backgroundColor('#f5f5f5')
+          .fontColor('#999')
+          .width('40%')
+          .height(40)
+        
+        Button('确定')
+          .onClick(() => {
+            if (this.roomName && this.roomName.trim().length > 0) {
+              this.onConfirm(this.roomName)
+              this.controller.close()
+            } else {
+              promptAction.showToast({
+                message: '房间名称不能为空',
+                duration: 2000
+              })
+            }
+          })
+          .backgroundColor('#007DFF')
+          .fontColor(Color.White)
+          .width('40%')
+          .height(40)
+      }
+      .margin({ top: 10, bottom: 20 })
+    }
+    .width('90%')
+    .backgroundColor(Color.White)
+    .borderRadius(10)
+    .padding(10)
+  }
+}
+
+// 定义房间列表对话框组件
+@CustomDialog
+struct RoomListDialog {
+  controller: CustomDialogController
+  @State rooms: RoomItem[] = []
+  onDelete: (roomId: number) => void = () => {}
+  
+  aboutToAppear() {
+    // 获取全局房间列表
+    this.rooms = globalDataManager.getRooms()
+  }
+  
+  build() {
+    Column() {
+      Text('管理房间')
+        .fontSize(20)
+        .fontWeight(FontWeight.Medium)
+        .margin({ top: 10, bottom: 10 })
+      
+      List() {
+        ForEach(this.rooms, (room: RoomItem) => {
+          // 不显示"全屋"选项，因为它不能删除
+          if (room.id !== 0) {
+            ListItem() {
+              Row() {
+                Text(room.name)
+                  .fontSize(16)
+                  .fontColor('#333')
+                  .layoutWeight(1)
+                
+                Button({ type: ButtonType.Circle }) {
+                  Image($r('app.media.black'))
+                    .width(16)
+                    .height(16)
+                    .fillColor(Color.Red)
+                }
+                .width(32)
+                .height(32)
+                .backgroundColor('rgba(255, 0, 0, 0.1)')
+                .onClick(() => {
+                  this.onDelete(room.id)
+                  // 更新本地房间列表
+                  this.rooms = globalDataManager.getRooms()
+                })
+              }
+              .width('100%')
+              .height(50)
+              .padding({ left: 16, right: 16 })
+            }
+          }
+        })
+      }
+      .width('90%')
+      .height(200)
+      .backgroundColor('#f5f5f5')
+      .borderRadius(8)
+      .margin({ bottom: 20 })
+      
+      Button('关闭')
+        .onClick(() => {
+          this.controller.close()
+        })
+        .backgroundColor('#007DFF')
+        .fontColor(Color.White)
+        .width('90%')
+        .height(40)
+        .margin({ bottom: 10 })
+    }
+    .width('90%')
+    .backgroundColor(Color.White)
+    .borderRadius(10)
+    .padding(10)
+  }
+}
 
 // 定义昵称编辑对话框组件
 @CustomDialog
@@ -191,10 +324,13 @@ export struct ProfilePage {
   // 用户信息状态
   @State userInfo: UserInfo = globalDataManager.getUserInfo()
   @State avatarUri: string = '' // 头像URI
+  // 房间列表
+  @State rooms: RoomItem[] = []
   
   // 在页面显示时获取最新的用户信息
   aboutToAppear() {
     this.userInfo = globalDataManager.getUserInfo()
+    this.rooms = globalDataManager.getRooms()
     console.info(`ProfilePage - 当前用户账号ID: ${this.userInfo.account}`)
   }
   
@@ -211,6 +347,24 @@ export struct ProfilePage {
   avatarPickerController: CustomDialogController = new CustomDialogController({
     builder: AvatarPickerDialog({
       onSelectImage: (uri: string) => this.updateAvatar(uri)
+    }),
+    autoCancel: true,
+    alignment: DialogAlignment.Center
+  })
+  
+  // 房间管理对话框控制器 - 添加房间
+  roomAddController: CustomDialogController = new CustomDialogController({
+    builder: RoomManageDialog({
+      onConfirm: (roomName: string) => this.addRoom(roomName)
+    }),
+    autoCancel: true,
+    alignment: DialogAlignment.Center
+  })
+  
+  // 房间管理对话框控制器 - 查看/删除房间
+  roomListController: CustomDialogController = new CustomDialogController({
+    builder: RoomListDialog({
+      onDelete: (roomId: number) => this.deleteRoom(roomId)
     }),
     autoCancel: true,
     alignment: DialogAlignment.Center
@@ -246,6 +400,50 @@ export struct ProfilePage {
       console.info(`头像已更新: ${uri}`)
       promptAction.showToast({
         message: '头像更新成功',
+        duration: 2000
+      })
+    }
+  }
+  
+  // 添加房间
+  addRoom(roomName: string): void {
+    if (roomName) {
+      if (globalDataManager.addRoom(roomName)) {
+        // 更新本地房间列表
+        this.rooms = globalDataManager.getRooms()
+        // 更新本地用户信息状态
+        this.userInfo = globalDataManager.getUserInfo()
+        // 显示成功提示
+        promptAction.showToast({
+          message: `成功添加房间：${roomName}`,
+          duration: 2000
+        })
+      } else {
+        // 显示失败提示
+        promptAction.showToast({
+          message: '房间已存在或名称无效',
+          duration: 2000
+        })
+      }
+    }
+  }
+  
+  // 删除房间
+  deleteRoom(roomId: number): void {
+    if (globalDataManager.deleteRoom(roomId)) {
+      // 更新本地房间列表
+      this.rooms = globalDataManager.getRooms()
+      // 更新本地用户信息状态
+      this.userInfo = globalDataManager.getUserInfo()
+      // 显示成功提示
+      promptAction.showToast({
+        message: '已删除房间',
+        duration: 2000
+      })
+    } else {
+      // 显示失败提示
+      promptAction.showToast({
+        message: '删除房间失败',
         duration: 2000
       })
     }
@@ -359,10 +557,33 @@ export struct ProfilePage {
           .fontSize(18)
           .fontWeight(FontWeight.Medium)
         
-        Text(`${this.userInfo.roomCount}个房间`)
-          .fontSize(14)
-          .fontColor('#999')
-          .margin({ left: 10 })
+        Row() {
+          Text(`${this.userInfo.roomCount}个房间`)
+            .fontSize(14)
+            .fontColor('#999')
+            .margin({ left: 10 })
+          
+          // 添加房间管理按钮
+          Row() {
+            // 添加房间按钮
+            Image($r('app.media.increase'))
+              .width(20)
+              .height(20)
+              .margin({ left: 5 })
+              .onClick(() => {
+                this.roomAddController.open()
+              })
+            
+            // 管理房间按钮
+            Image($r('app.media.index3_unused'))
+              .width(20)
+              .height(20)
+              .margin({ left: 10 })
+              .onClick(() => {
+                this.roomListController.open()
+              })
+          }
+        }
         
         Blank()
         
@@ -376,11 +597,8 @@ export struct ProfilePage {
       .padding({ left: 20, right: 20, top: 15, bottom: 15 })
       .margin({ top: 10 })
       .onClick(() => {
-        // 点击跳转到家庭详情
-        promptAction.showToast({
-          message: '家庭详情功能开发中',
-          duration: 2000
-        })
+        // 点击跳转到房间管理
+        this.roomListController.open()
       })
 
       // 设置选项列表

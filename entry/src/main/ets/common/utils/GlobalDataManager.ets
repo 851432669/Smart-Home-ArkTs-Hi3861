@@ -27,6 +27,13 @@ export interface UserInfo {
   roomCount: number;
 }
 
+// 房间项接口
+export interface RoomItem {
+  id: number,
+  name: string,
+  isSelected: boolean
+}
+
 class GlobalDataManager {
   // 环境数据
   private environmentData: EnvironmentDataItem[] = [
@@ -103,6 +110,15 @@ class GlobalDataManager {
     isVerified: true,
     roomCount: 1
   };
+
+  // 房间数据
+  private rooms: RoomItem[] = [
+    { id: 0, name: '全屋', isSelected: true },
+    { id: 1, name: '客厅', isSelected: false },
+    { id: 2, name: '卫生间', isSelected: false },
+    { id: 3, name: '厨房', isSelected: false },
+    { id: 4, name: '阳台', isSelected: false }
+  ];
 
   // 数据是否已加载标志
   private isDataLoaded: boolean = false;
@@ -195,6 +211,81 @@ class GlobalDataManager {
       this.setDeviceStatus('robot', true);       // 开启扫地机
     }
     // 可以添加其他场景...
+  }
+
+  // 获取所有房间
+  getRooms(): RoomItem[] {
+    return this.rooms;
+  }
+
+  // 添加新房间
+  addRoom(roomName: string): boolean {
+    if (!roomName || roomName.trim().length === 0) {
+      return false;
+    }
+
+    // 检查是否已存在相同名称的房间
+    const existingRoom = this.rooms.find(room => room.name === roomName.trim());
+    if (existingRoom) {
+      return false;
+    }
+
+    // 添加新房间
+    const newId = this.rooms.length;
+    this.rooms.push({
+      id: newId,
+      name: roomName.trim(),
+      isSelected: false
+    } as RoomItem);
+
+    // 更新用户房间数量
+    this.updateRoomCount(this.rooms.length - 1); // 减去"全屋"选项
+    
+    console.info(`新房间已添加: ${roomName}, ID: ${newId}, 总房间数: ${this.rooms.length}`);
+    return true;
+  }
+
+  // 删除房间
+  deleteRoom(roomId: number): boolean {
+    // 不允许删除"全屋"选项(id=0)
+    if (roomId === 0) {
+      return false;
+    }
+
+    const index = this.rooms.findIndex(room => room.id === roomId);
+    if (index === -1) {
+      return false;
+    }
+
+    // 如果要删除的房间当前被选中，则选中"全屋"
+    if (this.rooms[index].isSelected) {
+      this.selectRoom(0);
+    }
+
+    // 删除房间
+    this.rooms.splice(index, 1);
+    
+    // 重新分配ID
+    this.rooms = this.rooms.map((room, idx) => ({
+      id: idx,
+      name: room.name,
+      isSelected: room.isSelected
+    } as RoomItem));
+
+    // 更新用户房间数量
+    this.updateRoomCount(this.rooms.length - 1); // 减去"全屋"选项
+    
+    console.info(`房间已删除, ID: ${roomId}, 当前房间数: ${this.rooms.length}`);
+    return true;
+  }
+
+  // 选择房间
+  selectRoom(roomId: number): void {
+    this.rooms = this.rooms.map(room => ({
+      id: room.id,
+      name: room.name,
+      isSelected: room.id === roomId
+    } as RoomItem));
   }
 
   // 检查数据是否已加载
