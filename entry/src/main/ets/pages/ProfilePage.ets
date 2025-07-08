@@ -271,10 +271,10 @@ export struct ProfilePage {
   
   // 跳转到帮助中心
   navigateToHelpCenter(): void {
-    // 显示开发中提示
-    promptAction.showToast({
-      message: '帮助中心功能开发中',
-      duration: 2000
+    router.pushUrl({
+      url: 'pages/HelpCenterPage'
+    }).catch((err: Error) => {
+      console.error(`跳转到帮助中心页面失败: ${JSON.stringify(err)}`)
     })
   }
   

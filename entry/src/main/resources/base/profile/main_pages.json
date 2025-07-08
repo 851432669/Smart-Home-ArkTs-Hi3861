@@ -10,6 +10,8 @@
     "pages/ForgotPasswordPage",
     "pages/TermsPage",
     "pages/SmokeAlarmPage",
-    "pages/EnvironmentInfoPage"
+    "pages/EnvironmentInfoPage",
+    "pages/HelpCenterPage",
+    "pages/QuestionDialog"
   ]
 }
