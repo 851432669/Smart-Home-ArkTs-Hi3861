@@ -1,4 +1,5 @@
 import router from '@ohos.router'
+import promptAction from '@ohos.promptAction'
 import { EnvMonitorPage } from './EnvMonitorPage'
 import { SmartPage } from './SmartPage'
 import { ProfilePage } from './ProfilePage'
@@ -22,6 +23,64 @@ interface RoomItem {
   id: number,
   name: string,
   isSelected: boolean
+}
+
+// 自定义添加房间对话框
+@CustomDialog
+struct RoomAddDialog {
+  controller: CustomDialogController
+  @State roomName: string = ''
+  onConfirm: (roomName: string) => void = () => {}
+  
+  build() {
+    Column() {
+      Text('添加房间')
+        .fontSize(20)
+        .fontWeight(FontWeight.Bold)
+        .margin({ top: 15, bottom: 15 })
+      
+      TextInput({ placeholder: '请输入房间名称' })
+        .width('90%')
+        .height(50)
+        .onChange((value: string) => {
+          this.roomName = value
+        })
+        .margin({ bottom: 20 })
+      
+      Flex({ justifyContent: FlexAlign.SpaceAround }) {
+        Button('取消')
+          .onClick(() => {
+            this.controller.close()
+          })
+          .backgroundColor('#f5f5f5')
+          .fontColor('#666666')
+          .width('40%')
+          .height(40)
+        
+        Button('确定')
+          .onClick(() => {
+            if (this.roomName && this.roomName.trim().length > 0) {
+              this.onConfirm(this.roomName.trim())
+              this.controller.close()
+            } else {
+              promptAction.showToast({
+                message: '房间名称不能为空',
+                duration: 2000
+              })
+            }
+          })
+          .backgroundColor('#1890ff')
+          .fontColor(Color.White)
+          .width('40%')
+          .height(40)
+      }
+      .width('90%')
+    }
+    .width('80%')
+    .padding({ top: 20, bottom: 20 })
+    .backgroundColor(Color.White)
+    .borderRadius(12)
+  }
 }
 
 interface DeviceItem {
@@ -99,6 +158,42 @@ struct MainPage {
   // 添加定时器ID，用于实时检查设备状态更新
   private timerId: number = -1;
 
+  // 添加房间名称状态
+  @State newRoomName: string = '';
+
+  // 添加房间对话框控制器
+  private addRoomDialogController: CustomDialogController = new CustomDialogController({
+    builder: RoomAddDialog({
+      onConfirm: this.handleAddRoom.bind(this)
+    }),
+    autoCancel: true,
+    alignment: DialogAlignment.Center
+  })
+
+  // 处理添加房间
+  handleAddRoom(roomName: string) {
+    if (roomName && roomName.trim() !== '') {
+      // 添加新房间
+      if(globalDataManager.addRoom(roomName)) {
+        // 同步房间列表
+        this.syncRoomsWithGlobalState();
+        // 更新UI
+        this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
+        
+        // 显示成功提示
+        promptAction.showToast({
+          message: `成功添加房间：${roomName}`,
+          duration: 2000
+        });
+      } else {
+        promptAction.showToast({
+          message: '房间已存在或名称无效',
+          duration: 2000
+        });
+      }
+    }
+  }
+
   // 初始化，合并了两个aboutToAppear函数
   aboutToAppear() {
     // 初始触发刷新
@@ -106,6 +201,9 @@ struct MainPage {
     
     // 同步全局设备状态
     this.syncDevicesWithGlobalState();
+    
+    // 同步全局房间列表状态
+    this.syncRoomsWithGlobalState();
     
     // 直接使用全局数据管理器中的数据
     this.environmentData = globalDataManager.getEnvironmentData();
@@ -374,10 +472,33 @@ struct MainPage {
     console.info(`设备状态已更新，refreshTrigger = ${this.refreshTrigger}`);
   }
 
+  // 从全局状态同步房间列表到本地状态
+  syncRoomsWithGlobalState() {
+    console.info('同步房间列表到UI...');
+    const globalRooms = globalDataManager.getRooms();
+    
+    // 保存当前选中的房间ID
+    const selectedRoomId = this.rooms.find(room => room.isSelected)?.id || 0;
+    
+    // 更新本地房间列表，保持选中状态
+    this.rooms = globalRooms.map(room => {
+      return {
+        id: room.id,
+        name: room.name,
+        isSelected: room.id === selectedRoomId
+      } as RoomItem;
+    });
+    
+    console.info(`房间列表已更新，当前房间数：${this.rooms.length}`);
+  }
+
   // 每次页面显示时执行
   onPageShow() {
     // 同步设备状态
     this.syncDevicesWithGlobalState();
+    
+    // 同步房间列表状态
+    this.syncRoomsWithGlobalState();
   }
 
   selectRoom(roomId: number) {
@@ -690,7 +811,7 @@ struct MainPage {
 
         Blank()
 
-        // 添加设备按钮 (替换原来的烟雾报警按钮)
+        // 添加设备按钮 
         Button() {
           Row({ space: 8 }) {
             Image($r('app.media.increase'))
@@ -722,6 +843,23 @@ struct MainPage {
           ForEach(this.rooms, (room: RoomItem) => {
             this.renderRoomItem(room)
           }, (room: RoomItem) => room.id.toString() + (this.refreshTrigger)) // 增加refreshTrigger使ForEach重新构建
+          
+          // 添加房间按钮
+          Button() {
+            Image($r('app.media.increase'))
+              .width(22)
+              .height(22)
+              .fillColor('#1890ff')
+          }
+          .backgroundColor('#f0f0f0')
+          .width(38)
+          .height(38)
+          .borderRadius(19)
+          .margin({ left: 10 })
+          .onClick(() => {
+            // 打开添加房间对话框
+            this.addRoomDialogController.open();
+          })
         }
       }
       .scrollable(ScrollDirection.Horizontal)
@@ -732,8 +870,9 @@ struct MainPage {
       if (this.rooms.find(room => room.id === 1 && room.isSelected) ||
           this.rooms.find(room => room.id === 2 && room.isSelected) ||
           this.rooms.find(room => room.id === 3 && room.isSelected)||
-          this.rooms.find(room => room.id === 4 && room.isSelected)) {
-        // 客厅/卫生间/厨房被选中时，显示卡片式界面
+          this.rooms.find(room => room.id === 4 && room.isSelected) ||
+          this.rooms.find(room => room.id > 4 && room.isSelected)) {
+        // 客厅/卫生间/厨房/阳台/新添加的房间被选中时，显示卡片式界面
         Column() {
           Row() {
             Button() {
