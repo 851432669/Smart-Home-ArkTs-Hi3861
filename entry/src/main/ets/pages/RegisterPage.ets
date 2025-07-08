@@ -2,6 +2,22 @@ import router from '@ohos.router'
 import preferences from '@ohos.data.preferences'
 import http from '@ohos.net.http'
 
+// 定义注册请求数据接口
+interface RegisterRequestData {
+  username: string
+  password: string
+  contactType: string
+  contactValue: string
+  question?: string
+  answer?: string
+}
+
+// 定义API响应接口
+interface ApiResponse {
+  success: boolean
+  message: string
+}
+
 @Entry
 @Component
 struct RegisterPage {
@@ -20,7 +36,7 @@ struct RegisterPage {
   @State countdown: number = 60
   @State isSendingCode: boolean = false
   private countdownTimer: number = -1
-  private readonly apiBaseUrl: string = 'http://your-api-server.com/api' // 替换为你的API地址
+  private readonly apiBaseUrl: string = 'http://192.168.1.100:3001' // 修改为您开发电脑的实际IP地址
 
   private checkPasswordStrength(password: string) {
     if (!password) {
@@ -141,36 +157,59 @@ struct RegisterPage {
       return
     }
 
-    // 暂时使用preferences存储，实际应用中应该使用后端API
+    // 调用后端API注册用户
     try {
-      const context = getContext(this)
-      const store = await preferences.getPreferences(context, 'user_data')
-      const exists = await store.get(this.username, '')
-
-      if (exists !== '') {
-        this.showMessage('用户名已存在，请更换', 'error')
-        return
-      }
-
-      // 存储用户数据
-      await store.put(this.username, this.password)
-      await store.put(`${this.username}_contactType`, this.contactType)
-      await store.put(`${this.username}_contact`, this.contactValue)
-
+      // 创建HTTP请求客户端
+      let httpRequest = http.createHttp();
+      
+      // 构建请求数据
+      let requestData: RegisterRequestData = {
+        username: this.username,
+        password: this.password,
+        contactType: this.contactType,
+        contactValue: this.contactValue
+      };
+      
+      // 添加密保问题和答案（如果有）
       if (this.question && this.answer) {
-        await store.put(`${this.username}_question`, this.question)
-        await store.put(`${this.username}_answer`, this.answer)
+        requestData.question = this.question;
+        requestData.answer = this.answer;
       }
-
-      await store.flush()
-
-      this.showMessage('注册成功', 'success')
-      setTimeout(() => {
-        router.pushUrl({ url: 'pages/Index' })
-      }, 1000)
+      
+      // 发送注册请求
+      let response = await httpRequest.request(
+        `${this.apiBaseUrl}/api/register`,
+        {
+          method: http.RequestMethod.POST,
+          header: {
+            'Content-Type': 'application/json'
+          },
+          extraData: JSON.stringify(requestData)
+        }
+      );
+      
+      // 释放HTTP客户端资源
+      httpRequest.destroy();
+      
+      // 检查响应状态
+      if (response.responseCode === 201) {
+        let responseData = JSON.parse(response.result as string) as ApiResponse;
+        if (responseData.success) {
+          this.showMessage('注册成功', 'success');
+          setTimeout(() => {
+            router.pushUrl({ url: 'pages/Index' });
+          }, 1000);
+        } else {
+          this.showMessage(responseData.message || '注册失败', 'error');
+        }
+      } else {
+        // 处理非201状态码
+        let responseData = JSON.parse(response.result as string) as ApiResponse;
+        this.showMessage(responseData.message || '注册失败', 'error');
+      }
     } catch (error) {
-      this.showMessage('注册失败，请重试', 'error')
-      console.error('注册失败:', JSON.stringify(error))
+      this.showMessage('注册失败，请检查网络连接', 'error');
+      console.error('注册失败:', JSON.stringify(error));
     }
   }
 
