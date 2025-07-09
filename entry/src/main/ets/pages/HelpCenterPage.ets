@@ -35,32 +35,32 @@ struct HelpCenterPage {
   private selfServiceItems: ServiceItem[] = [
     new ServiceItem(
       '重置密码',
-      $r('app.media.index2_unused'),
+      $r('app.media.startIcon'),
       () => this.showFeatureInDevelopment('重置密码')
     ),
     new ServiceItem(
       '账号申诉',
-      $r('app.media.index2_unused'),
+      $r('app.media.startIcon'),
       () => this.showFeatureInDevelopment('账号申诉')
     ),
     new ServiceItem(
       '冻结账号',
-      $r('app.media.index2_unused'),
+      $r('app.media.startIcon'),
       () => this.showFeatureInDevelopment('冻结账号')
     ),
     new ServiceItem(
       '解冻账号',
-      $r('app.media.index2_unused'),
+      $r('app.media.startIcon'),
       () => this.showFeatureInDevelopment('解冻账号')
     ),
     new ServiceItem(
       '解封账号',
-      $r('app.media.index2_unused'),
+      $r('app.media.startIcon'),
       () => this.showFeatureInDevelopment('解封账号')
     ),
     new ServiceItem(
       '注销账号',
-      $r('app.media.index2_unused'),
+      $r('app.media.startIcon'),
       () => this.showFeatureInDevelopment('注销账号')
     )
   ]
@@ -172,122 +172,113 @@ struct HelpCenterPage {
           .onClick(() => {
             this.activeTabIndex = 1
           })
-        
-
       }
       .width('100%')
       .padding({ left: 16, right: 16, top: 8, bottom: 8 })
       .justifyContent(FlexAlign.Start)
       
       // 内容区
-      Scroll() {
-        if (this.activeTabIndex === 0) {
-          // 自助服务内容
-          Column() {
-            Text('自助服务')
-              .fontSize(16)
-              .fontWeight(FontWeight.Medium)
-              .alignSelf(ItemAlign.Start)
-              .margin({ top: 16, bottom: 16, left: 16 })
-            
-            // 自助服务网格
-            Grid() {
-              ForEach(this.selfServiceItems, (item: ServiceItem) => {
-                GridItem() {
-                  Column() {
-                    // 使用圆形背景的图标
-                    Stack() {
-                      Circle()
-                        .width(48)
-                        .height(48)
-                        .fill('#f0f0f0')
-                      
-                      Image(item.icon)
-                        .width(24)
-                        .height(24)
-                        .fillColor('#666')
-                    }
+      if (this.activeTabIndex === 0) {
+        // 自助服务内容
+        Column() {
+          
+          
+          // 自助服务网格
+          Grid() {
+            ForEach(this.selfServiceItems, (item: ServiceItem) => {
+              GridItem() {
+                Column() {
+                  // 使用圆形背景的图标
+                  Stack() {
+                    Circle()
+                      .width(48)
+                      .height(48)
+                      .fill('#f0f0f0')
                     
-                    Text(item.title)
-                      .fontSize(14)
-                      .margin({ top: 8 })
+                    Image(item.icon)
+                      .width(24)
+                      .height(24)
+                      .fillColor('#666')
                   }
-                  .onClick(item.action)
-                }
-              })
-            }
-            .columnsTemplate('1fr 1fr 1fr')
-            .rowsGap(16)
-            .columnsGap(8)
-            .padding({ left: 16, right: 16 })
-            
-            // 帮助中心标题
-            Row() {
-              Text('帮助中心')
-                .fontSize(16)
-                .fontWeight(FontWeight.Medium)
-              
-              Blank()
-              
-              Text('更多')
-                .fontSize(14)
-                .fontColor('#999')
-                .onClick(() => this.showFeatureInDevelopment('更多帮助'))
-            }
-            .width('100%')
-            .padding({ left: 16, right: 16, top: 24, bottom: 16 })
-          }
-        } else if (this.activeTabIndex === 1) {
-          // 常见问题内容
-          Column() {
-            ForEach(this.faqItems, (item: FAQItem, index: number) => {
-              Column() {
-                Row() {
-                  Text(item.question)
-                    .fontSize(16)
-                    .fontWeight(FontWeight.Medium)
                   
-                  Blank()
-                  
-                  Image($r('app.media.right')) // 使用向右箭头图标
-                    .width(20)
-                    .height(20)
-                    .fillColor('#999')
+                  Text(item.title)
+                    .fontSize(14)
+                    .margin({ top: 8 })
                 }
-                .width('100%')
-                .padding({ top: 16, bottom: 16, left: 16, right: 16 })
-                .backgroundColor(Color.White)
-                .onClick(() => {
-                  // 跳转到问题详情页
-                  router.pushUrl({
-                    url: 'pages/QuestionDialog',
-                    params: {
-                      question: item.question,
-                      answer: item.answer
-                    }
-                  }).catch((err: Error) => {
-                    console.error(`跳转到问题详情页失败: ${JSON.stringify(err)}`)
-                    // 如果跳转失败，显示回答
-                    promptAction.showDialog({
-                      title: item.question,
-                      message: item.answer,
-                      buttons: [
-                        {
-                          text: '知道了',
-                          color: '#007DFF'
-                        }
-                      ]
-                    })
-                  })
-                })
+                .onClick(item.action)
               }
-              .margin({ bottom: index === this.faqItems.length - 1 ? 0 : 1 })
             })
           }
-          .backgroundColor('#f5f5f5')
+          .columnsTemplate('1fr 1fr 1fr')
+          .rowsGap(16)
+          .columnsGap(8)
+          .padding({ left: 16, right: 16 })
+          
+          // 帮助中心标题
+          Row() {
+            Text('帮助中心')
+              .fontSize(16)
+              .fontWeight(FontWeight.Medium)
+            
+            Text('更多')
+              .fontSize(14)
+              .fontColor('#999')
+              .onClick(() => this.showFeatureInDevelopment('更多帮助'))
+          }
+          .width('100%')
+          .padding({ left: 16, right: 16, top: 24, bottom: 16 })
+          .justifyContent(FlexAlign.SpaceBetween)
         }
+        .layoutWeight(1)
+      } else if (this.activeTabIndex === 1) {
+        // 常见问题内容
+        Column() {
+          ForEach(this.faqItems, (item: FAQItem, index: number) => {
+            Column() {
+              Row() {
+                Text(item.question)
+                  .fontSize(16)
+                  .fontWeight(FontWeight.Medium)
+                
+                Image($r('app.media.right')) // 使用向右箭头图标
+                  .width(20)
+                  .height(20)
+                  .fillColor('#999')
+              }
+              .width('100%')
+              .padding({ top: 16, bottom: 16, left: 16, right: 16 })
+              .backgroundColor(Color.White)
+              .justifyContent(FlexAlign.SpaceBetween)
+              .onClick(() => {
+                // 跳转到问题详情页
+                router.pushUrl({
+                  url: 'pages/QuestionDialog',
+                  params: {
+                    question: item.question,
+                    answer: item.answer
+                  }
+                }).catch((err: Error) => {
+                  console.error(`跳转到问题详情页失败: ${JSON.stringify(err)}`)
+                  // 如果跳转失败，显示回答
+                  promptAction.showDialog({
+                    title: item.question,
+                    message: item.answer,
+                    buttons: [
+                      {
+                        text: '知道了',
+                        color: '#007DFF'
+                      }
+                    ]
+                  })
+                })
+              })
+            }
+            .margin({ bottom: index === this.faqItems.length - 1 ? 0 : 1 })
+          })
+        }
+        .backgroundColor('#f5f5f5')
+        .layoutWeight(1)
       }
-      .layoutWeight(1)
     }
     .width('100%')
     .height('100%')
