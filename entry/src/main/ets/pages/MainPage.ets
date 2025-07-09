@@ -139,8 +139,8 @@ struct MainPage {
     }
   ]
 
-  // 添加MQTT工具实例
-  private mqttUtil: MQTTUtil = new MQTTUtil();
+  // 使用单例模式获取MQTT工具实例
+  private mqttUtil: MQTTUtil = MQTTUtil.getInstance();
 
   @State rooms: RoomItem[] = [
     { id: 0, name: '全屋', isSelected: true },
@@ -533,6 +533,12 @@ struct MainPage {
     // 强制触发UI更新
     this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
     console.info(`MainPage - 数据同步完成，刷新触发器: ${this.refreshTrigger}`);
+    
+    // 检查MQTT连接状态，如果断开则重连
+    if (!this.mqttUtil.isClientConnected()) {
+      console.info('MQTT连接已断开，尝试重新连接...');
+      this.initMQTT();
+    }
   }
 
   selectRoom(roomId: number) {
