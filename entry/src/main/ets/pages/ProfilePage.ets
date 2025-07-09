@@ -138,7 +138,7 @@ struct RoomListDialog {
       Button('关闭')
         .onClick(() => {
           if (this.controller) {
-            this.controller.close()
+          this.controller.close()
           } else {
             console.error('RoomListDialog - controller is undefined')
           }
