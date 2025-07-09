@@ -49,20 +49,34 @@ struct ForgotPasswordPage {
       console.log('验证用户响应:', JSON.stringify(response))
       
       if (response.success && response.data) {
-        console.log('用户数据:', JSON.stringify(response.data))
-        // 如果用户存在，获取用户的安全问题
-        const question = String(response.data.question || '')
-        console.log('获取到的密保问题:', question)
+        console.log('用户数据详情:', JSON.stringify({
+          dataExists: !!response.data,
+          hasUsername: !!response.data['username'],
+          username: response.data['username'] || '未获取到',
+          hasQuestion: !!response.data['question'],
+          question: response.data['question'] || '未设置',
+          questionType: typeof response.data['question'],
+          allFields: Object.keys(response.data)
+        }))
         
-        if (question && question.length > 0) {
+        // 如果用户存在，获取用户的安全问题
+        const question = typeof response.data['question'] === 'string' ? 
+          response.data['question'] : 
+          JSON.stringify(response.data['question'] || '')
+          
+        console.log('获取到的密保问题:', question, '长度:', question.length, '类型:', typeof question)
+        
+        if (question && question.length > 0 && question !== 'null' && question !== 'undefined' && question !== '""') {
           this.question = question
           this.showForm = true
           this.showMessage('', 'info')
         } else {
+          console.warn('密保问题为空或未设置')
           this.showMessage('该用户未设置密保问题', 'error')
           this.showForm = false
         }
       } else {
+        console.warn('API响应失败或没有数据:', response.message)
         this.showMessage(response.message || '未找到该用户', 'error')
         this.showForm = false
       }

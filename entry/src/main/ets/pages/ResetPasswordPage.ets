@@ -2,6 +2,7 @@ import router from '@ohos.router'
 import promptAction from '@ohos.promptAction'
 import { ApiService } from '../common/utils/ApiService'
 import preferences from '@ohos.data.preferences'
+import { globalDataManager } from '../common/utils/GlobalDataManager'
 
 interface RouterParams {
   username?: string;
@@ -22,39 +23,73 @@ struct ResetPasswordPage {
 
   // 生命周期钩子，页面显示时获取当前登录用户
   aboutToAppear() {
+    console.log('ResetPasswordPage: aboutToAppear开始执行')
+    
     // 尝试从路由参数获取用户名
     const params = router.getParams() as RouterParams;
     if (params && params.username) {
+      console.log('ResetPasswordPage: 从路由参数获取用户名:', params.username)
       this.username = params.username;
       return;
     }
 
-    // 如果路由参数没有用户名，则从本地存储获取
-    this.getUserInfo();
+    // 如果路由参数没有用户名，从globalDataManager获取
+    this.getUserInfoFromGlobal();
   }
 
-  // 获取当前登录用户信息
-  async getUserInfo() {
+  // 从GlobalDataManager获取用户信息
+  getUserInfoFromGlobal() {
     try {
-      // 获取偏好存储实例
-      this.preferenceStore = await preferences.getPreferences(getContext(), 'userInfo')
+      console.log('ResetPasswordPage: 从GlobalDataManager获取用户信息');
       
-      // 获取当前登录用户名
-      const username = await this.preferenceStore.get('username', '') as string
-      if (username) {
-        this.username = username;
+      // 获取当前用户信息
+      const userInfo = globalDataManager.getUserInfo();
+      console.log('ResetPasswordPage: 获取到的用户信息:', JSON.stringify(userInfo));
+      
+      if (userInfo && userInfo.account) {
+        this.username = userInfo.account;
+        console.log('ResetPasswordPage: 设置当前用户账号成功:', this.username);
       } else {
-        this.showMessage('未能获取用户信息，请返回重试', 'error')
-        setTimeout(() => {
-          router.back()
-        }, 1500)
+        console.warn('ResetPasswordPage: 未从GlobalDataManager获取到用户账号');
+        // 如果GlobalDataManager没有用户信息，则尝试从preferences获取
+        this.getUserInfo();
       }
     } catch (error) {
-      console.error('获取用户信息失败:', JSON.stringify(error))
-      this.showMessage('获取用户信息失败', 'error')
+      console.error('ResetPasswordPage: 从GlobalDataManager获取用户信息失败:', JSON.stringify(error));
+      // 尝试从preferences获取
+      this.getUserInfo();
+    }
+  }
+
+  // 获取当前登录用户信息(从preferences获取，作为备选方案)
+  async getUserInfo() {
+    try {
+      console.log('ResetPasswordPage: 开始获取用户信息');
+      
+      // 获取偏好存储实例
+      this.preferenceStore = await preferences.getPreferences(getContext(), 'userInfo');
+      console.log('ResetPasswordPage: 成功获取preferenceStore');
+      
+      // 获取当前登录用户名
+      const username = await this.preferenceStore.get('username', '') as string;
+      console.log('ResetPasswordPage: 获取到的用户名:', username);
+      
+      if (username) {
+        this.username = username;
+        console.log('ResetPasswordPage: 设置当前用户名成功:', this.username);
+      } else {
+        console.warn('ResetPasswordPage: 未获取到用户名，显示错误提示');
+        this.showMessage('未能获取用户信息，请返回重试', 'error');
+        setTimeout(() => {
+          router.back();
+        }, 1500);
+      }
+    } catch (error) {
+      console.error('ResetPasswordPage: 获取用户信息失败:', JSON.stringify(error));
+      this.showMessage('获取用户信息失败', 'error');
       setTimeout(() => {
-        router.back()
-      }, 1500)
+        router.back();
+      }, 1500);
     }
   }
 

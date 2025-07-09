@@ -278,12 +278,14 @@ export class ApiService {
       requestParams.addHeader('Content-Type', 'application/json');
       requestParams.extraData = JSON.stringify(requestData);
 
+      console.log('verifyUser 发送请求:', `${ApiService.apiBaseUrl}/api/verify-user`, JSON.stringify(requestData));
+
       let response = await httpRequest.request(
         `${ApiService.apiBaseUrl}/api/verify-user`,
         requestParams
       )
 
-      console.log('原始响应内容:', response.result);
+      console.log('verifyUser 原始响应:', response.responseCode, response.result);
       
       // 解析响应数据
       interface UserData {
@@ -300,7 +302,18 @@ export class ApiService {
       }
       
       let responseData = JSON.parse(response.result as string) as UserResponseData;
-      console.log('解析后的响应数据:', JSON.stringify(responseData));
+      console.log('verifyUser 解析后的响应数据:', JSON.stringify(responseData));
+
+      // 检查问题字段
+      if (responseData.data) {
+        console.log('密保问题检查:', {
+          hasQuestion: !!responseData.data.question,
+          questionLength: responseData.data.question ? responseData.data.question.length : 0,
+          questionValue: responseData.data.question || '未设置'
+        });
+      } else {
+        console.log('响应中没有data字段或data为空');
+      }
 
       // 转换数据为符合ApiResponse的格式
       let apiData: Record<string, string | number | boolean | null> = {};
@@ -320,7 +333,7 @@ export class ApiService {
         data: apiData
       }
 
-      console.log('处理后返回的响应:', JSON.stringify(successResponse));
+      console.log('verifyUser 处理后返回的响应:', JSON.stringify(successResponse));
       return successResponse;
     } catch (error) {
       console.error('验证用户出错:', error instanceof Error ? error.message : JSON.stringify(error));

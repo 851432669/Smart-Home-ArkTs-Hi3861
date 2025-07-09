@@ -1,6 +1,7 @@
 import router from '@ohos.router'
 import promptAction from '@ohos.promptAction'
 import preferences from '@ohos.data.preferences'
+import { globalDataManager } from '../common/utils/GlobalDataManager'
 
 // 定义错误类型接口
 interface ErrorInfo {
@@ -38,25 +39,62 @@ struct HelpCenterPage {
   @State searchText: string = ''
   @State activeTabIndex: number = 0
   @State username: string = ''
+  @State account: string = ''  // 添加账号ID字段
   private preferenceStore: preferences.Preferences | null = null
 
   aboutToAppear() {
     this.getUserInfo()
+    this.getUserInfoFromGlobal() // 从GlobalDataManager获取用户信息
+  }
+
+  // 从GlobalDataManager获取用户信息
+  getUserInfoFromGlobal() {
+    try {
+      console.log('HelpCenterPage: 从GlobalDataManager获取用户信息');
+      
+      // 获取当前用户信息
+      const userInfo = globalDataManager.getUserInfo();
+      console.log('HelpCenterPage: 获取到的用户信息:', JSON.stringify(userInfo));
+      
+      if (userInfo) {
+        if (userInfo.account) {
+          this.account = userInfo.account;
+          console.log('HelpCenterPage: 设置当前用户账号成功:', this.account);
+        }
+        
+        if (userInfo.nickname) {
+          this.username = userInfo.nickname;
+          console.log('HelpCenterPage: 设置当前用户昵称成功:', this.username);
+        }
+      } else {
+        console.warn('HelpCenterPage: 未从GlobalDataManager获取到用户信息');
+      }
+    } catch (error) {
+      console.error('HelpCenterPage: 从GlobalDataManager获取用户信息失败:', JSON.stringify(error));
+    }
   }
 
   // 获取当前登录用户信息
   async getUserInfo() {
     try {
+      console.log('HelpCenterPage: 开始获取用户信息');
+      
       // 获取偏好存储实例
-      this.preferenceStore = await preferences.getPreferences(getContext(), 'userInfo')
+      this.preferenceStore = await preferences.getPreferences(getContext(), 'userInfo');
+      console.log('HelpCenterPage: 成功获取preferenceStore');
       
       // 获取当前登录用户名
-      const username = await this.preferenceStore.get('username', '') as string
+      const username = await this.preferenceStore.get('username', '') as string;
+      console.log('HelpCenterPage: 获取到的用户名:', username);
+      
       if (username) {
-        this.username = username
+        this.username = username;
+        console.log('HelpCenterPage: 设置当前用户名成功:', this.username);
+      } else {
+        console.warn('HelpCenterPage: 未获取到用户名');
       }
     } catch (error) {
-      console.error('获取用户信息失败:', JSON.stringify(error))
+      console.error('HelpCenterPage: 获取用户信息失败:', JSON.stringify(error));
     }
   }
   
@@ -66,10 +104,14 @@ struct HelpCenterPage {
       '重置密码',
       $r('app.media.startIcon'),
       () => {
+        // 优先使用account，如果没有再使用username
+        const userIdentifier = this.account || this.username;
+        console.log('HelpCenterPage: 跳转重置密码页面，使用账号:', userIdentifier);
+        
         router.pushUrl({
           url: 'pages/ResetPasswordPage',
           params: {
-            username: this.username
+            username: userIdentifier
           }
         }).catch((err: ErrorInfo) => {
           console.error(`跳转到重置密码页面失败: ${JSON.stringify(err)}`)
