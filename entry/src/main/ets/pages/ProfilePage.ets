@@ -132,7 +132,11 @@ struct RoomListDialog {
       
       Button('关闭')
         .onClick(() => {
-          this.controller.close()
+          if (this.controller) {
+            this.controller.close()
+          } else {
+            console.error('RoomListDialog - controller is undefined')
+          }
         })
         .backgroundColor('#007DFF')
         .fontColor(Color.White)
@@ -387,22 +391,26 @@ export struct ProfilePage {
     alignment: DialogAlignment.Center
   })
   
-  // 创建房间列表对话框控制器
-  createRoomListController(): CustomDialogController {
-    return new CustomDialogController({
+  // 房间列表对话框控制器
+  roomListDialogController: CustomDialogController = new CustomDialogController({
     builder: RoomListDialog({
       onDelete: (roomId: number) => this.deleteRoom(roomId)
     }),
     autoCancel: true,
     alignment: DialogAlignment.Center
-    });
-  }
+  })
   
   // 打开房间列表对话框
   openRoomListDialog() {
-    // 创建新的控制器，确保每次打开时都获取最新数据
-    const controller = this.createRoomListController();
-    controller.open();
+    // 重新创建控制器，确保每次打开时都获取最新数据
+    this.roomListDialogController = new CustomDialogController({
+      builder: RoomListDialog({
+        onDelete: (roomId: number) => this.deleteRoom(roomId)
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Center
+    })
+    this.roomListDialogController.open()
   }
   
   // 修改昵称
