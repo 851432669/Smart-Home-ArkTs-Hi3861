@@ -30,6 +30,23 @@ export struct SmartPage {
 
   // 页面显示时从全局状态获取最新数据
   aboutToAppear() {
+    this.updateDeviceStatus();
+    
+    // 检查是否所有设备都是离家模式状态
+    if(!this.isACOn && !this.isLightOn && !this.isTVOn && !this.isCurtainOn && !this.isAudioOn && this.isRobotOn) {
+      this.executionStatus = '已执行高效离家模式：关闭空调、客厅灯、电视、窗帘和音响，开启扫地机';
+    } else if(this.isACOn && this.isLightOn && this.isTVOn && this.isCurtainOn && !this.isAudioOn && !this.isRobotOn) {
+      this.executionStatus = '已执行回家模式：开启空调、客厅灯、电视、窗帘，关闭音响和扫地机';
+    }
+  }
+  
+  // 页面显示时更新设备状态
+  onPageShow() {
+    this.updateDeviceStatus();
+  }
+  
+  // 更新设备状态的方法
+  updateDeviceStatus() {
     const acDevice = globalDataManager.getDeviceById('ac');
     const lightDevice = globalDataManager.getDeviceById('livingRoomLight');
     const tvDevice = globalDataManager.getDeviceById('tv');
@@ -43,11 +60,6 @@ export struct SmartPage {
     if(curtainDevice) this.isCurtainOn = curtainDevice.isOn;
     if(audioDevice) this.isAudioOn = audioDevice.isOn;
     if(robotDevice) this.isRobotOn = robotDevice.isOn;
-    
-    // 检查是否所有设备都是离家模式状态
-    if(!this.isACOn && !this.isLightOn && !this.isTVOn && !this.isCurtainOn && !this.isAudioOn && this.isRobotOn) {
-      this.executionStatus = '已执行高效离家模式：关闭空调、客厅灯、电视、窗帘和音响，开启扫地机';
-    }
   }
 
   // 发送LED灯控制命令
@@ -87,19 +99,7 @@ export struct SmartPage {
     globalDataManager.updateDevicesForScene('leaveHome');
     
     // 同步更新本地状态以更新UI
-    const acDevice = globalDataManager.getDeviceById('ac');
-    const lightDevice = globalDataManager.getDeviceById('livingRoomLight');
-    const tvDevice = globalDataManager.getDeviceById('tv');
-    const curtainDevice = globalDataManager.getDeviceById('curtain');
-    const audioDevice = globalDataManager.getDeviceById('audio');
-    const robotDevice = globalDataManager.getDeviceById('robot');
-    
-    if(acDevice) this.isACOn = acDevice.isOn;
-    if(lightDevice) this.isLightOn = lightDevice.isOn;
-    if(tvDevice) this.isTVOn = tvDevice.isOn;
-    if(curtainDevice) this.isCurtainOn = curtainDevice.isOn;
-    if(audioDevice) this.isAudioOn = audioDevice.isOn;
-    if(robotDevice) this.isRobotOn = robotDevice.isOn;
+    this.updateDeviceStatus();
     
     // 通过MQTT发送LED灯控制命令（关闭）
     const ledResult = await this.sendLightControlCommand(false);
@@ -129,29 +129,17 @@ export struct SmartPage {
     globalDataManager.updateDevicesForScene('comeHome');
     
     // 同步更新本地状态以更新UI
-    const acDevice = globalDataManager.getDeviceById('ac');
-    const lightDevice = globalDataManager.getDeviceById('livingRoomLight');
-    const tvDevice = globalDataManager.getDeviceById('tv');
-    const curtainDevice = globalDataManager.getDeviceById('curtain');
-    const audioDevice = globalDataManager.getDeviceById('audio');
-    const robotDevice = globalDataManager.getDeviceById('robot');
-    
-    if(acDevice) this.isACOn = acDevice.isOn;
-    if(lightDevice) this.isLightOn = lightDevice.isOn;
-    if(tvDevice) this.isTVOn = tvDevice.isOn;
-    if(curtainDevice) this.isCurtainOn = curtainDevice.isOn;
-    if(audioDevice) this.isAudioOn = audioDevice.isOn;
-    if(robotDevice) this.isRobotOn = robotDevice.isOn;
+    this.updateDeviceStatus();
     
     // 通过MQTT发送LED灯控制命令（开启）
     const ledResult = await this.sendLightControlCommand(true);
     
     // 更新执行状态提示
-    this.executionStatus = '已执行回家模式：开启空调、客厅灯、电视，关闭扫地机';
+    this.executionStatus = '已执行回家模式：开启空调、客厅灯、电视、窗帘，关闭音响和扫地机';
     
     // 显示操作成功的提示，包含LED控制状态
     promptAction.showToast({
-      message: `已执行回家模式：已开启空调、客厅灯、电视，已关闭扫地机${ledResult ? '' : '（LED控制失败）'}`,
+      message: `已执行回家模式：已开启空调、客厅灯、电视、窗帘，已关闭音响和扫地机${ledResult ? '' : '（LED控制失败）'}`,
       duration: 2000,
     });
     

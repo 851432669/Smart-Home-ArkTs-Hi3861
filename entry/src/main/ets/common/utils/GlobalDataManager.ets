@@ -209,6 +209,17 @@ class GlobalDataManager {
       this.setDeviceStatus('curtain', false);    // 关闭窗帘
       this.setDeviceStatus('audio', false);      // 关闭音响
       this.setDeviceStatus('robot', true);       // 开启扫地机
+    } 
+    else if (scene === 'comeHome') {
+      // 回家模式：开启空调、客厅灯、电视，关闭扫地机
+      this.setDeviceStatus('ac', true);          // 开启空调
+      this.setDeviceStatus('livingRoomLight', true);  // 开启客厅灯
+      this.setDeviceStatus('tv', true);          // 开启电视
+      this.setDeviceStatus('curtain', true);     // 开启窗帘
+      this.setDeviceStatus('audio', false);      // 关闭音响
+      this.setDeviceStatus('robot', false);      // 关闭扫地机
+      
+      console.info('已执行回家模式：开启空调、客厅灯、电视、窗帘，关闭音响和扫地机');
     }
     // 可以添加其他场景...
   }
