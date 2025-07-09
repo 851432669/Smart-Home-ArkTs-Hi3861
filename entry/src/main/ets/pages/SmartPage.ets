@@ -1,6 +1,7 @@
 import router from '@ohos.router'
 import promptAction from '@ohos.promptAction' // 导入提示框组件
 import { globalDataManager } from '../common/utils/GlobalDataManager'
+import MQTTUtil from '../common/utils/MQTTUtil'
 
 @Component
 export struct SmartPage {
@@ -23,6 +24,9 @@ export struct SmartPage {
   
   // 轮播图当前索引
   @State swiperIndex: number = 0
+  
+  // 使用MQTT单例
+  private mqttUtil: MQTTUtil = MQTTUtil.getInstance()
 
   // 页面显示时从全局状态获取最新数据
   aboutToAppear() {
@@ -46,8 +50,35 @@ export struct SmartPage {
     }
   }
 
+  // 发送LED灯控制命令
+  private async sendLightControlCommand(isOn: boolean): Promise<boolean> {
+    try {
+      console.info(`智能场景 - 发送客厅灯控制命令: ${isOn ? '开启' : '关闭'}`);
+      
+      // 构造JSON消息
+      const message = JSON.stringify({
+        device: 'led',
+        action: isOn ? 'on' : 'off'
+      });
+      
+      // 发布到led_control主题
+      const result = await this.mqttUtil.publishMessage('led_control', message);
+      
+      if (result) {
+        console.info('智能场景 - 灯光控制命令发送成功');
+        return true;
+      } else {
+        console.error('智能场景 - 灯光控制命令发送失败');
+        return false;
+      }
+    } catch (error) {
+      console.error(`智能场景 - 发送灯光控制命令异常: ${JSON.stringify(error)}`);
+      return false;
+    }
+  }
+
   // 离家模式执行函数
-  leaveHome() {
+  async leaveHome() {
     console.info('执行离家模式...');
     this.isExecuting = true;
     this.executionStatus = '正在执行离家模式...';
@@ -70,12 +101,57 @@ export struct SmartPage {
     if(audioDevice) this.isAudioOn = audioDevice.isOn;
     if(robotDevice) this.isRobotOn = robotDevice.isOn;
     
+    // 通过MQTT发送LED灯控制命令（关闭）
+    const ledResult = await this.sendLightControlCommand(false);
+    
     // 更新执行状态提示
     this.executionStatus = '已执行高效离家模式：关闭空调、客厅灯、电视、窗帘和音响，开启扫地机';
     
-    // 显示操作成功的提示
+    // 显示操作成功的提示，包含LED控制状态
     promptAction.showToast({
-      message: '已执行离家模式：已关闭空调、客厅灯、电视、窗帘和音响，已开启扫地机',
+      message: `已执行离家模式：已关闭空调、客厅灯、电视、窗帘和音响，已开启扫地机${ledResult ? '' : '（LED控制失败）'}`,
+      duration: 2000,
+    });
+    
+    // 执行完成后恢复按钮状态
+    setTimeout(() => {
+      this.isExecuting = false;
+    }, 2000);
+  }
+  
+  // 回家模式执行函数
+  async comeHome() {
+    console.info('执行回家模式...');
+    this.isExecuting = true;
+    this.executionStatus = '正在执行回家模式...';
+    
+    // 更新全局状态
+    globalDataManager.updateDevicesForScene('comeHome');
+    
+    // 同步更新本地状态以更新UI
+    const acDevice = globalDataManager.getDeviceById('ac');
+    const lightDevice = globalDataManager.getDeviceById('livingRoomLight');
+    const tvDevice = globalDataManager.getDeviceById('tv');
+    const curtainDevice = globalDataManager.getDeviceById('curtain');
+    const audioDevice = globalDataManager.getDeviceById('audio');
+    const robotDevice = globalDataManager.getDeviceById('robot');
+    
+    if(acDevice) this.isACOn = acDevice.isOn;
+    if(lightDevice) this.isLightOn = lightDevice.isOn;
+    if(tvDevice) this.isTVOn = tvDevice.isOn;
+    if(curtainDevice) this.isCurtainOn = curtainDevice.isOn;
+    if(audioDevice) this.isAudioOn = audioDevice.isOn;
+    if(robotDevice) this.isRobotOn = robotDevice.isOn;
+    
+    // 通过MQTT发送LED灯控制命令（开启）
+    const ledResult = await this.sendLightControlCommand(true);
+    
+    // 更新执行状态提示
+    this.executionStatus = '已执行回家模式：开启空调、客厅灯、电视，关闭扫地机';
+    
+    // 显示操作成功的提示，包含LED控制状态
+    promptAction.showToast({
+      message: `已执行回家模式：已开启空调、客厅灯、电视，已关闭扫地机${ledResult ? '' : '（LED控制失败）'}`,
       duration: 2000,
     });
     
@@ -236,6 +312,73 @@ export struct SmartPage {
             }
             .width('90%')
             .height(260)
+            .borderRadius(16)
+            .shadow({ radius: 10, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 5 })
+            .margin({ top: 20 })
+            
+            // 回家场景卡片
+            Stack() {
+              Image($r('app.media.home_1'))
+                .width('100%')
+                .height(260)
+                .borderRadius(16)
+                .objectFit(ImageFit.Cover)
+                .brightness(0.7)
+
+              Column({ space: 8 }) {
+                Text('回家')
+                  .fontSize(28)
+                  .fontWeight(FontWeight.Bold)
+                  .fontColor(Color.White)
+
+                Text('一键开启空调、灯具设备，关闭扫地机')
+                  .fontSize(16)
+                  .fontColor('rgba(255, 255, 255, 0.8)')
+                  .margin({ top: 5 })
+                
+                // 添加执行按钮
+                Button('一键执行')
+                  .fontSize(16)
+                  .height(40)
+                  .width(120)
+                  .fontColor('#FFFFFF')
+                  .backgroundColor('rgba(76, 175, 80, 0.9)')
+                  .borderRadius(20)
+                  .margin({ top: 15 })
+                  .onClick(() => {
+                    this.comeHome()
+                  })
+                  .enabled(!this.isExecuting)
+                
+                // 显示当前设备状态
+                Row({ space: 10 }) {
+                  Text(`空调: ${this.isACOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                  
+                  Text(`客厅灯: ${this.isLightOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                }
+                .margin({ top: 10 })
+                
+                Row({ space: 10 }) {
+                  Text(`电视: ${this.isTVOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                    
+                  Text(`窗帘: ${this.isCurtainOn ? '开启' : '关闭'}`)
+                    .fontSize(14)
+                    .fontColor(Color.White)
+                }
+                .margin({ top: 5 })
+              }
+              .position({ x: '5%', y: '50%' })
+              .alignItems(HorizontalAlign.Start)
+              .width('90%')
+            }
+            .width('90%')
+            .height(220)
             .borderRadius(16)
             .shadow({ radius: 10, color: 'rgba(0, 0, 0, 0.1)', offsetX: 0, offsetY: 5 })
             .margin({ top: 20 })
