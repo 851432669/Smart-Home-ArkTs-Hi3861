@@ -68,9 +68,9 @@ struct ForgotPasswordPage {
         
         if (question && question.length > 0 && question !== 'null' && question !== 'undefined' && question !== '""') {
           this.question = question
-          this.showForm = true
-          this.showMessage('', 'info')
-        } else {
+      this.showForm = true
+      this.showMessage('', 'info')
+    } else {
           console.warn('密保问题为空或未设置')
           this.showMessage('该用户未设置密保问题', 'error')
           this.showForm = false
@@ -78,7 +78,7 @@ struct ForgotPasswordPage {
       } else {
         console.warn('API响应失败或没有数据:', response.message)
         this.showMessage(response.message || '未找到该用户', 'error')
-        this.showForm = false
+      this.showForm = false
       }
     } catch (error) {
       console.error('获取密保问题失败:', JSON.stringify(error))
@@ -97,9 +97,9 @@ struct ForgotPasswordPage {
       const response = await ApiService.verifySecurityAnswer(this.username, this.answer)
       
       if (response.success) {
-        this.securityVerified = true
-        this.showMessage('密保问题验证成功，请设置新密码', 'success')
-      } else {
+      this.securityVerified = true
+      this.showMessage('密保问题验证成功，请设置新密码', 'success')
+    } else {
         this.showMessage(response.message || '密保答案错误', 'error')
       }
     } catch (error) {
@@ -144,22 +144,22 @@ struct ForgotPasswordPage {
     try {
       // 调用API服务发送验证码
       const response = await ApiService.sendVerificationCode(this.username, this.contactType, this.contactValue)
-      
-      if (response.success) {
-        // 开始倒计时
-        this.codeSent = true
-        this.countdown = 60
-        this.countdownTimer = setInterval(() => {
-          if (this.countdown > 1) {
-            this.countdown--
-          } else {
-            clearInterval(this.countdownTimer)
-            this.countdownTimer = -1
-            this.codeSent = false
-          }
-        }, 1000)
 
-        this.showMessage(`验证码已发送至${this.contactType === 'phone' ? '手机' : '邮箱'}`, 'success')
+      if (response.success) {
+      // 开始倒计时
+      this.codeSent = true
+      this.countdown = 60
+      this.countdownTimer = setInterval(() => {
+        if (this.countdown > 1) {
+          this.countdown--
+        } else {
+          clearInterval(this.countdownTimer)
+          this.countdownTimer = -1
+          this.codeSent = false
+        }
+      }, 1000)
+
+      this.showMessage(`验证码已发送至${this.contactType === 'phone' ? '手机' : '邮箱'}`, 'success')
         
         // 在开发环境可以打印验证码
         if (response.data && response.data['code']) {
@@ -198,10 +198,10 @@ struct ForgotPasswordPage {
       const response = await ApiService.forgotPassword(this.username, this.newPassword, 'security')
       
       if (response.success) {
-        this.showMessage('密码重置成功，请使用新密码登录', 'success')
-        setTimeout(() => {
-          router.back()
-        }, 2000)
+      this.showMessage('密码重置成功，请使用新密码登录', 'success')
+      setTimeout(() => {
+        router.back()
+      }, 2000)
       } else {
         this.showMessage(response.message || '密码重置失败，请重试', 'error')
       }
@@ -244,12 +244,12 @@ struct ForgotPasswordPage {
       
       // 验证码正确，调用 API 服务重置密码
       const response = await ApiService.forgotPassword(this.username, this.newPassword, 'verification')
-      
+
       if (response.success) {
-        this.showMessage('密码重置成功，请使用新密码登录', 'success')
-        setTimeout(() => {
-          router.back()
-        }, 2000)
+      this.showMessage('密码重置成功，请使用新密码登录', 'success')
+      setTimeout(() => {
+        router.back()
+      }, 2000)
       } else {
         this.showMessage(response.message || '密码重置失败，请重试', 'error')
       }
