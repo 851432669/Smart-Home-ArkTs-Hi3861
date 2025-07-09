@@ -1,5 +1,6 @@
 import router from '@ohos.router'
 import preferences from '@ohos.data.preferences'
+import { ApiService } from '../common/utils/ApiService'
 
 @Entry
 @Component
@@ -22,7 +23,6 @@ struct ForgotPasswordPage {
   @State confirmPassword: string = ''
   @State securityVerified: boolean = false
   private countdownTimer: number = -1
-  private readonly apiBaseUrl: string = 'http://your-api-server.com/api' // 替换为你的API地址
 
   aboutToDisappear() {
     if (this.countdownTimer !== -1) {
@@ -42,16 +42,29 @@ struct ForgotPasswordPage {
       return
     }
 
-    const context = getContext(this)
-    const store = await preferences.getPreferences(context, 'user_data')
-    const savedQuestion = await store.get(`${this.username}_question`, '') as string
-    if (savedQuestion) {
-      this.question = savedQuestion
-      this.showForm = true
-      this.showMessage('', 'info')
-    } else {
-      this.showMessage('未找到该用户或该用户未设置密保', 'error')
-      this.showForm = false
+    // 调用 API 服务验证用户是否存在
+    try {
+      const response = await ApiService.verifyUser(this.username)
+      
+      if (response.success && response.data) {
+        // 如果用户存在，获取用户的安全问题
+        const question = response.data['question'] as string
+        
+        if (question) {
+          this.question = question
+          this.showForm = true
+          this.showMessage('', 'info')
+        } else {
+          this.showMessage('该用户未设置密保问题', 'error')
+          this.showForm = false
+        }
+      } else {
+        this.showMessage(response.message || '未找到该用户', 'error')
+        this.showForm = false
+      }
+    } catch (error) {
+      console.error('获取密保问题失败:', JSON.stringify(error))
+      this.showMessage('服务器连接失败，请稍后再试', 'error')
     }
   }
 
@@ -61,17 +74,19 @@ struct ForgotPasswordPage {
       return
     }
 
-    const context = getContext(this)
-    const store = await preferences.getPreferences(context, 'user_data')
-    const savedAnswer = await store.get(`${this.username}_answer`, '') as string
-    const savedPassword = await store.get(this.username, '') as string
-
-    if (this.answer === savedAnswer) {
-      this.password = savedPassword // 保存旧密码用于后续验证，但不显示
-      this.securityVerified = true
-      this.showMessage('密保问题验证成功，请设置新密码', 'success')
-    } else {
-      this.showMessage('密保答案错误', 'error')
+    // 调用 API 服务验证密保答案
+    try {
+      const response = await ApiService.verifySecurityAnswer(this.username, this.answer)
+      
+      if (response.success) {
+        this.securityVerified = true
+        this.showMessage('密保问题验证成功，请设置新密码', 'success')
+      } else {
+        this.showMessage(response.message || '密保答案错误', 'error')
+      }
+    } catch (error) {
+      console.error('验证密保答案失败:', JSON.stringify(error))
+      this.showMessage('服务器连接失败，请稍后再试', 'error')
     }
   }
 
@@ -106,45 +121,35 @@ struct ForgotPasswordPage {
       return
     }
 
-    // 验证用户名和联系方式是否匹配
-    const context = getContext(this)
-    const store = await preferences.getPreferences(context, 'user_data')
-    const savedContactType = await store.get(`${this.username}_contactType`, '') as string
-    const savedContact = await store.get(`${this.username}_contact`, '') as string
-
-    if (!savedContactType || !savedContact) {
-      this.showMessage('未找到该用户或该用户未设置联系方式', 'error')
-      return
-    }
-
-    if (savedContactType !== this.contactType || savedContact !== this.contactValue) {
-      this.showMessage('用户名与联系方式不匹配', 'error')
-      return
-    }
-
     this.isSendingCode = true
 
     try {
-      // 模拟API延迟
-      await new Promise<void>(resolve => setTimeout(resolve, 1000))
+      // 调用API服务发送验证码
+      const response = await ApiService.sendVerificationCode(this.username, this.contactType, this.contactValue)
+      
+      if (response.success) {
+        // 开始倒计时
+        this.codeSent = true
+        this.countdown = 60
+        this.countdownTimer = setInterval(() => {
+          if (this.countdown > 1) {
+            this.countdown--
+          } else {
+            clearInterval(this.countdownTimer)
+            this.countdownTimer = -1
+            this.codeSent = false
+          }
+        }, 1000)
 
-      const simulatedCode = '6666' // 模拟验证码
-      console.log(`模拟发送验证码: ${simulatedCode}`)  // 输出验证码到控制台
-
-      // 开始倒计时
-      this.codeSent = true
-      this.countdown = 60
-      this.countdownTimer = setInterval(() => {
-        if (this.countdown > 1) {
-          this.countdown--
-        } else {
-          clearInterval(this.countdownTimer)
-          this.countdownTimer = -1
-          this.codeSent = false
+        this.showMessage(`验证码已发送至${this.contactType === 'phone' ? '手机' : '邮箱'}`, 'success')
+        
+        // 在开发环境可以打印验证码
+        if (response.data && response.data['code']) {
+          console.log(`验证码: ${response.data['code']}`)
         }
-      }, 1000)
-
-      this.showMessage(`验证码已发送至${this.contactType === 'phone' ? '手机' : '邮箱'}`, 'success')
+      } else {
+        this.showMessage(response.message || '验证码发送失败，请重试', 'error')
+      }
     } catch (error) {
       this.showMessage('验证码发送失败，请重试', 'error')
       console.error('发送验证码失败:', JSON.stringify(error))
@@ -170,24 +175,18 @@ struct ForgotPasswordPage {
       return
     }
 
-    // 验证新密码不能与旧密码相同
-    if (this.newPassword === this.password) {
-      this.showMessage('新密码不能与旧密码相同', 'error')
-      return
-    }
-
     try {
-      const context = getContext(this)
-      const store = await preferences.getPreferences(context, 'user_data')
+      // 调用 API 服务重置密码
+      const response = await ApiService.forgotPassword(this.username, this.newPassword, 'security')
       
-      // 更新密码
-      await store.put(this.username, this.newPassword)
-      await store.flush()
-
-      this.showMessage('密码重置成功，请使用新密码登录', 'success')
-      setTimeout(() => {
-        router.back()
-      }, 2000)
+      if (response.success) {
+        this.showMessage('密码重置成功，请使用新密码登录', 'success')
+        setTimeout(() => {
+          router.back()
+        }, 2000)
+      } else {
+        this.showMessage(response.message || '密码重置失败，请重试', 'error')
+      }
     } catch (error) {
       this.showMessage('密码重置失败，请重试', 'error')
       console.error('密码重置失败:', JSON.stringify(error))
@@ -216,33 +215,26 @@ struct ForgotPasswordPage {
       return
     }
 
-    // 验证验证码 - 实际应用中应调用后端API验证
-    if (this.verificationCode !== '6666') { // 模拟固定验证码，实际应用中需要从后端验证
-      this.showMessage('验证码错误', 'error')
-      return
-    }
-
     try {
-      const context = getContext(this)
-      const store = await preferences.getPreferences(context, 'user_data')
+      // 首先验证验证码
+      const verifyResponse = await ApiService.verifyCode(this.username, this.verificationCode)
       
-      // 获取旧密码进行比较
-      const oldPassword = await store.get(this.username, '') as string
-      
-      // 验证新密码不能与旧密码相同
-      if (this.newPassword === oldPassword) {
-        this.showMessage('新密码不能与旧密码相同', 'error')
+      if (!verifyResponse.success) {
+        this.showMessage(verifyResponse.message || '验证码错误或已过期', 'error')
         return
       }
       
-      // 更新密码
-      await store.put(this.username, this.newPassword)
-      await store.flush()
-
-      this.showMessage('密码重置成功，请使用新密码登录', 'success')
-      setTimeout(() => {
-        router.back()
-      }, 2000)
+      // 验证码正确，调用 API 服务重置密码
+      const response = await ApiService.forgotPassword(this.username, this.newPassword, 'verification')
+      
+      if (response.success) {
+        this.showMessage('密码重置成功，请使用新密码登录', 'success')
+        setTimeout(() => {
+          router.back()
+        }, 2000)
+      } else {
+        this.showMessage(response.message || '密码重置失败，请重试', 'error')
+      }
     } catch (error) {
       this.showMessage('密码重置失败，请重试', 'error')
       console.error('密码重置失败:', JSON.stringify(error))

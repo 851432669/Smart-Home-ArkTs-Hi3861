@@ -390,11 +390,11 @@ export struct ProfilePage {
   // 创建房间列表对话框控制器
   createRoomListController(): CustomDialogController {
     return new CustomDialogController({
-      builder: RoomListDialog({
-        onDelete: (roomId: number) => this.deleteRoom(roomId)
-      }),
-      autoCancel: true,
-      alignment: DialogAlignment.Center
+    builder: RoomListDialog({
+      onDelete: (roomId: number) => this.deleteRoom(roomId)
+    }),
+    autoCancel: true,
+    alignment: DialogAlignment.Center
     });
   }
   

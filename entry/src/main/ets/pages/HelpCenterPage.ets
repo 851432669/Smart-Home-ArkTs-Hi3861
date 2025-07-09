@@ -1,5 +1,12 @@
 import router from '@ohos.router'
 import promptAction from '@ohos.promptAction'
+import preferences from '@ohos.data.preferences'
+
+// 定义错误类型接口
+interface ErrorInfo {
+  code: number;
+  message: string;
+}
 
 // 定义自助服务项类型
 class ServiceItem {
@@ -30,13 +37,45 @@ class FAQItem {
 struct HelpCenterPage {
   @State searchText: string = ''
   @State activeTabIndex: number = 0
+  @State username: string = ''
+  private preferenceStore: preferences.Preferences | null = null
+
+  aboutToAppear() {
+    this.getUserInfo()
+  }
+
+  // 获取当前登录用户信息
+  async getUserInfo() {
+    try {
+      // 获取偏好存储实例
+      this.preferenceStore = await preferences.getPreferences(getContext(), 'userInfo')
+      
+      // 获取当前登录用户名
+      const username = await this.preferenceStore.get('username', '') as string
+      if (username) {
+        this.username = username
+      }
+    } catch (error) {
+      console.error('获取用户信息失败:', JSON.stringify(error))
+    }
+  }
   
   // 自助服务选项
   private selfServiceItems: ServiceItem[] = [
     new ServiceItem(
       '重置密码',
       $r('app.media.startIcon'),
-      () => this.showFeatureInDevelopment('重置密码')
+      () => {
+        router.pushUrl({
+          url: 'pages/ResetPasswordPage',
+          params: {
+            username: this.username
+          }
+        }).catch((err: ErrorInfo) => {
+          console.error(`跳转到重置密码页面失败: ${JSON.stringify(err)}`)
+          this.showFeatureInDevelopment('重置密码')
+        })
+      }
     ),
     new ServiceItem(
       '账号申诉',
@@ -181,8 +220,6 @@ struct HelpCenterPage {
       if (this.activeTabIndex === 0) {
         // 自助服务内容
         Column() {
-          
-          
           // 自助服务网格
           Grid() {
             ForEach(this.selfServiceItems, (item: ServiceItem) => {
@@ -257,7 +294,7 @@ struct HelpCenterPage {
                     question: item.question,
                     answer: item.answer
                   }
-                }).catch((err: Error) => {
+                }).catch((err: ErrorInfo) => {
                   console.error(`跳转到问题详情页失败: ${JSON.stringify(err)}`)
                   // 如果跳转失败，显示回答
                   promptAction.showDialog({

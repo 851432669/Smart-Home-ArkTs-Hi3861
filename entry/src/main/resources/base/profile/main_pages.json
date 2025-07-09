@@ -12,6 +12,7 @@
     "pages/SmokeAlarmPage",
     "pages/EnvironmentInfoPage",
     "pages/HelpCenterPage",
-    "pages/QuestionDialog"
+    "pages/QuestionDialog",
+    "pages/ResetPasswordPage"
   ]
 }

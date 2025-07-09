@@ -2,6 +2,7 @@ import router from '@ohos.router'
 import preferences from '@ohos.data.preferences'
 import http from '@ohos.net.http'
 import { globalDataManager } from '../common/utils/GlobalDataManager'
+import { ApiService } from '../common/utils/ApiService'
 
 @Entry
 @Component
@@ -19,7 +20,6 @@ struct Index {
   private particles: Particle[] = []
   private readonly particleCount: number = 50
   private animationId: number = -1
-  private readonly apiBaseUrl: string = 'http://your-api-server.com/api' // 替换为你的API地址
   
   // 使用Canvas特有的drawing上下文
   private settings: RenderingContextSettings = new RenderingContextSettings(true)
@@ -177,33 +177,10 @@ struct Index {
         await this.clearSavedAccount()
       }
 
-      // 在实际应用中，这里应该调用后端API进行登录验证
-      /* 实际调用示例:
-      const httpRequest = http.createHttp()
-      const response = await httpRequest.request(
-        `${this.apiBaseUrl}/login`,
-        {
-          method: http.RequestMethod.POST,
-          extraData: JSON.stringify({
-            username: this.username,
-            password: this.password
-          }),
-          header: { 'Content-Type': 'application/json' }
-        }
-      )
+      // 调用 API 服务进行登录验证
+      const response = await ApiService.login(this.username, this.password)
       
-      const result = JSON.parse(response.result.toString())
-      if (!result.success) {
-        throw new Error(result.message)
-      }
-      */
-
-      // 暂时使用本地存储进行登录验证
-      const context = getContext(this)
-      const store = await preferences.getPreferences(context, 'user_data')
-      const savedPassword = await store.get(this.username, '')
-
-      if (savedPassword === this.password) {
+      if (response.success) {
         // 登录成功后，将当前用户名(登录ID)保存到全局管理器中
         globalDataManager.updateUserAccount(this.username)
         
@@ -214,7 +191,7 @@ struct Index {
         }, 1000)
       } else {
         setTimeout(() => {
-          this.message = '用户名或密码错误'
+          this.message = response.message || '用户名或密码错误'
           this.isLoading = false
         }, 500)
       }
