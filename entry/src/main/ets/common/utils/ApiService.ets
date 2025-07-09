@@ -136,7 +136,7 @@ class ResponseDataWrapper {
  * 封装了与后端服务器通信的方法
  */
 export class ApiService {
-  private static readonly apiBaseUrl: string = 'http://172.20.10.2:3001'
+  private static readonly apiBaseUrl: string = 'http://192.168.12.85:3001'//wifi
 
   /**
    * 用户登录

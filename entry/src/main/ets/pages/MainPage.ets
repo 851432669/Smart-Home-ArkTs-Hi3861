@@ -5,6 +5,19 @@ import { SmartPage } from './SmartPage'
 import { ProfilePage } from './ProfilePage'
 import EnvironmentViewModel from '../viewmodel/EnvironmentViewModel'
 import { globalDataManager, EnvironmentDataItem, DeviceStatus } from '../common/utils/GlobalDataManager';
+import MQTTUtil from '../common/utils/MQTTUtil';
+import { MqttMessage } from '@ohos/mqtt';
+
+// 定义MQTT设备状态接口
+interface MqttDeviceStatus {
+  deviceId: string;
+  isOn: boolean;
+  // 添加可能的其他具体属性，而不是使用索引签名
+  value?: string;
+  temperature?: number;
+  humidity?: number;
+  timestamp?: number;
+}
 
 // 定义路由参数接口
 interface RouterParams {
@@ -125,6 +138,9 @@ struct MainPage {
       selectedIcon: $r('app.media.user1_used')
     }
   ]
+
+  // 添加MQTT工具实例
+  private mqttUtil: MQTTUtil = new MQTTUtil();
 
   @State rooms: RoomItem[] = [
     { id: 0, name: '全屋', isSelected: true },
@@ -261,6 +277,9 @@ struct MainPage {
     
     // 添加实时设备状态检查
     this.startDeviceStatusMonitor();
+    
+    // 初始化MQTT连接
+    this.initMQTT();
   }
   
   // 组件销毁时清除定时器
@@ -555,6 +574,10 @@ struct MainPage {
         } 
         else if (device.name === '客厅灯') {
           globalDataManager.setDeviceStatus('livingRoomLight', isOn);
+          
+          // 通过MQTT发送客厅灯控制命令
+          this.sendLightControlCommand(isOn);
+          
           return {
             id: device.id,
             name: device.name,
@@ -620,6 +643,36 @@ struct MainPage {
     // 强制触发UI刷新
     this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
   }
+  
+  // 发送灯光控制命令
+  private async sendLightControlCommand(isOn: boolean) {
+    try {
+      console.info(`发送客厅灯控制命令: ${isOn ? '开启' : '关闭'}`);
+      
+      // 构造JSON消息
+      const message = JSON.stringify({
+        device: 'led',
+        action: isOn ? 'on' : 'off'
+      });
+      
+      // 发布到led_control主题
+      const result = await this.mqttUtil.publishMessage('led_control', message);
+      
+      if (result) {
+        console.info('灯光控制命令发送成功');
+      } else {
+        console.error('灯光控制命令发送失败');
+        
+        // 发送失败时提示用户
+        promptAction.showToast({
+          message: '灯光控制命令发送失败',
+          duration: 2000
+        });
+      }
+    } catch (error) {
+      console.error(`发送灯光控制命令异常: ${JSON.stringify(error)}`);
+    }
+  }
 
   // 修改 adjustACTemperature 方法
   adjustACTemperature(value: string) {
@@ -642,6 +695,44 @@ struct MainPage {
     this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
   }
 
+  // 初始化MQTT连接
+  private initMQTT() {
+    console.info('正在初始化MQTT连接...');
+    this.mqttUtil.connect((err: Error, data: MqttMessage) => {
+      if (err) {
+        console.error(`MQTT连接错误: ${JSON.stringify(err)}`);
+        return;
+      }
+      
+      // 处理接收到的消息
+      console.info(`接收到MQTT消息: topic=${data.topic}, payload=${data.payload}`);
+      
+      // 处理设备状态反馈
+      if (data.topic === 'device_status') {
+        try {
+          const payload = data.payload ? data.payload.toString() : '';
+          const status = JSON.parse(payload) as MqttDeviceStatus;
+          if (status && status.deviceId && status.isOn !== undefined) {
+            // 更新对应设备的状态
+            this.updateDeviceFromMQTT(status.deviceId, status.isOn);
+          }
+        } catch (e) {
+          console.error(`解析MQTT消息失败: ${e}`);
+        }
+      }
+    });
+  }
+  
+  // 处理从MQTT接收的设备状态更新
+  private updateDeviceFromMQTT(deviceId: string, isOn: boolean) {
+    console.info(`从MQTT接收设备状态更新: ${deviceId} = ${isOn}`);
+    // 根据设备ID更新对应设备
+    if (deviceId === 'livingRoomLight') {
+      globalDataManager.setDeviceStatus('livingRoomLight', isOn);
+      this.syncDevicesWithGlobalState();
+    }
+    // 可以添加其他设备的处理
+  }
 
 
   @Builder

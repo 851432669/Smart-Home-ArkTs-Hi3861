@@ -37,7 +37,7 @@ struct RegisterPage {
   @State isSendingCode: boolean = false
   private countdownTimer: number = -1
   // private readonly apiBaseUrl: string = 'http://192.168.1.100:3001' // 修改为您开发电脑的实际IP地址
-  private readonly apiBaseUrl: string = 'http://172.20.10.2:3001' // 修改为您开发电脑的实际IP地址
+  private readonly apiBaseUrl: string = 'http://192.168.12.85:3001' // 修改为您开发电脑的实际IP地址
   private checkPasswordStrength(password: string) {
     if (!password) {
       this.passwordStrength = ''

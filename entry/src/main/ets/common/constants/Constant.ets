@@ -4,6 +4,6 @@ export const StatusArray: string[] = ["安全", "警告", "危险", "未知"];
 
 //服务器IP
 // const HOST_IP = '192.168.1.100' 192.168.12.84 172.20.10.2
-const HOST_IP = '192.168.1.100'
+const HOST_IP = '192.168.12.85'
 //MQTT服务端地址
 export const MQTT_URL = `${HOST_IP}:1883`
