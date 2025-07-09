@@ -74,6 +74,14 @@ struct RoomListDialog {
   aboutToAppear() {
     // 获取全局房间列表
     this.rooms = globalDataManager.getRooms()
+    console.info(`RoomListDialog - 已获取全局房间列表，房间数量: ${this.rooms.length}`)
+  }
+
+  // 刷新房间列表
+  refreshRooms() {
+    // 获取全局房间列表
+    this.rooms = globalDataManager.getRooms()
+    console.info(`RoomListDialog - 已刷新房间列表，房间数量: ${this.rooms.length}`)
   }
   
   build() {
@@ -105,8 +113,8 @@ struct RoomListDialog {
                 .backgroundColor('rgba(255, 0, 0, 0.1)')
                 .onClick(() => {
                   this.onDelete(room.id)
-                  // 更新本地房间列表
-                  this.rooms = globalDataManager.getRooms()
+                  // 刷新本地房间列表
+                  this.refreshRooms()
                 })
               }
               .width('100%')
@@ -326,12 +334,30 @@ export struct ProfilePage {
   @State avatarUri: string = '' // 头像URI
   // 房间列表
   @State rooms: RoomItem[] = []
+  // 添加刷新触发器状态
+  @State refreshTrigger: number = 0
   
   // 在页面显示时获取最新的用户信息
   aboutToAppear() {
     this.userInfo = globalDataManager.getUserInfo()
     this.rooms = globalDataManager.getRooms()
     console.info(`ProfilePage - 当前用户账号ID: ${this.userInfo.account}`)
+  }
+  
+  // 每次页面显示时执行
+  onPageShow() {
+    this.syncUserAndRooms()
+  }
+  
+  // 同步用户信息和房间列表
+  syncUserAndRooms() {
+    // 更新用户信息
+    this.userInfo = globalDataManager.getUserInfo()
+    // 更新房间列表
+    this.rooms = globalDataManager.getRooms()
+    // 触发UI刷新
+    this.refreshTrigger = (this.refreshTrigger + 1) % 1000
+    console.info(`ProfilePage - 已同步用户信息和房间列表，刷新触发器: ${this.refreshTrigger}`)
   }
   
   // 昵称编辑对话框控制器
@@ -352,15 +378,6 @@ export struct ProfilePage {
     alignment: DialogAlignment.Center
   })
   
-  // 房间管理对话框控制器 - 查看/删除房间
-  roomListController: CustomDialogController = new CustomDialogController({
-    builder: RoomListDialog({
-      onDelete: (roomId: number) => this.deleteRoom(roomId)
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center
-  })
-
   // 自定义添加房间对话框控制器
   roomAddDialogController: CustomDialogController = new CustomDialogController({
     builder: RoomAddDialog({
@@ -369,6 +386,24 @@ export struct ProfilePage {
     autoCancel: true,
     alignment: DialogAlignment.Center
   })
+  
+  // 创建房间列表对话框控制器
+  createRoomListController(): CustomDialogController {
+    return new CustomDialogController({
+      builder: RoomListDialog({
+        onDelete: (roomId: number) => this.deleteRoom(roomId)
+      }),
+      autoCancel: true,
+      alignment: DialogAlignment.Center
+    });
+  }
+  
+  // 打开房间列表对话框
+  openRoomListDialog() {
+    // 创建新的控制器，确保每次打开时都获取最新数据
+    const controller = this.createRoomListController();
+    controller.open();
+  }
   
   // 修改昵称
   editNickname(): void {
@@ -410,10 +445,8 @@ export struct ProfilePage {
     if (roomName && roomName.trim() !== '') {
       // 添加新房间
       if(globalDataManager.addRoom(roomName.trim())) {
-        // 更新本地房间列表
-        this.rooms = globalDataManager.getRooms();
-        // 更新本地用户信息状态
-        this.userInfo = globalDataManager.getUserInfo();
+        // 同步用户信息和房间列表
+        this.syncUserAndRooms()
         
         // 显示成功提示
         promptAction.showToast({
@@ -438,10 +471,9 @@ export struct ProfilePage {
   // 删除房间
   deleteRoom(roomId: number): void {
     if (globalDataManager.deleteRoom(roomId)) {
-      // 更新本地房间列表
-      this.rooms = globalDataManager.getRooms()
-      // 更新本地用户信息状态
-      this.userInfo = globalDataManager.getUserInfo()
+      // 同步用户信息和房间列表
+      this.syncUserAndRooms()
+      
       // 显示成功提示
       promptAction.showToast({
         message: '已删除房间',
@@ -578,6 +610,7 @@ export struct ProfilePage {
               .height(20)
               .margin({ left: 5 })
               .onClick(() => {
+                // 打开添加房间对话框
                 this.roomAddDialogController.open()
               })
             
@@ -587,7 +620,10 @@ export struct ProfilePage {
               .height(20)
               .margin({ left: 10 })
               .onClick(() => {
-                this.roomListController.open()
+                // 先同步房间列表，确保显示最新状态
+                this.syncUserAndRooms()
+                // 打开房间列表对话框
+                this.openRoomListDialog()
               })
           }
         }
@@ -604,8 +640,10 @@ export struct ProfilePage {
       .padding({ left: 20, right: 20, top: 15, bottom: 15 })
       .margin({ top: 10 })
       .onClick(() => {
-        // 点击跳转到房间管理
-        this.roomListController.open()
+        // 先同步房间列表，确保显示最新状态
+        this.syncUserAndRooms()
+        // 打开房间列表对话框
+        this.openRoomListDialog()
       })
 
       // 设置选项列表

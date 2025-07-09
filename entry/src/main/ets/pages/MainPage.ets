@@ -474,31 +474,46 @@ struct MainPage {
 
   // 从全局状态同步房间列表到本地状态
   syncRoomsWithGlobalState() {
-    console.info('同步房间列表到UI...');
-    const globalRooms = globalDataManager.getRooms();
+    console.info('开始同步房间列表到UI...');
     
-    // 保存当前选中的房间ID
-    const selectedRoomId = this.rooms.find(room => room.isSelected)?.id || 0;
-    
-    // 更新本地房间列表，保持选中状态
-    this.rooms = globalRooms.map(room => {
-      return {
-        id: room.id,
-        name: room.name,
-        isSelected: room.id === selectedRoomId
-      } as RoomItem;
-    });
-    
-    console.info(`房间列表已更新，当前房间数：${this.rooms.length}`);
+    try {
+      // 获取全局房间列表
+      const globalRooms = globalDataManager.getRooms();
+      console.info(`获取到全局房间列表，房间数量: ${globalRooms.length}`);
+      
+      // 保存当前选中的房间ID
+      const selectedRoomId = this.rooms.find(room => room.isSelected)?.id || 0;
+      console.info(`当前选中的房间ID: ${selectedRoomId}`);
+      
+      // 更新本地房间列表，保持选中状态
+      this.rooms = globalRooms.map(room => {
+        return {
+          id: room.id,
+          name: room.name,
+          isSelected: room.id === selectedRoomId
+        } as RoomItem;
+      });
+      
+      // 输出新房间列表
+      let roomNames = this.rooms.map(room => room.name).join(', ');
+      console.info(`房间列表已更新，当前房间: [${roomNames}]，总数：${this.rooms.length}`);
+    } catch (error) {
+      console.error(`同步房间列表失败: ${JSON.stringify(error)}`);
+    }
   }
 
   // 每次页面显示时执行
   onPageShow() {
+    console.info('MainPage - 页面显示，正在同步最新数据...');
     // 同步设备状态
     this.syncDevicesWithGlobalState();
     
     // 同步房间列表状态
     this.syncRoomsWithGlobalState();
+    
+    // 强制触发UI更新
+    this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
+    console.info(`MainPage - 数据同步完成，刷新触发器: ${this.refreshTrigger}`);
   }
 
   selectRoom(roomId: number) {
@@ -1006,6 +1021,20 @@ struct MainPage {
           .height(60)
           .justifyContent(FlexAlign.Center)
           .onClick(() => {
+            // 当切换到不同标签时
+            if (this.currentTab !== tab.id) {
+              console.info(`切换标签，从 ${this.currentTab} 到 ${tab.id}`);
+              // 如果从其他页面切换到首页，立即同步数据
+              if (tab.id === 0) {
+                // 延迟50毫秒再同步，确保页面已经切换
+                setTimeout(() => {
+                  console.info('切换到首页，立即同步数据');
+                  this.syncDevicesWithGlobalState();
+                  this.syncRoomsWithGlobalState();
+                  this.refreshTrigger = (this.refreshTrigger + 1) % 1000;
+                }, 50);
+              }
+            }
             this.currentTab = tab.id;
           })
         })
