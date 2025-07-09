@@ -44,13 +44,17 @@ struct ForgotPasswordPage {
 
     // 调用 API 服务验证用户是否存在
     try {
+      console.log('正在获取用户信息:', this.username)
       const response = await ApiService.verifyUser(this.username)
+      console.log('验证用户响应:', JSON.stringify(response))
       
       if (response.success && response.data) {
+        console.log('用户数据:', JSON.stringify(response.data))
         // 如果用户存在，获取用户的安全问题
-        const question = response.data['question'] as string
+        const question = String(response.data.question || '')
+        console.log('获取到的密保问题:', question)
         
-        if (question) {
+        if (question && question.length > 0) {
           this.question = question
           this.showForm = true
           this.showMessage('', 'info')

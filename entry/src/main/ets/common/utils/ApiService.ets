@@ -283,18 +283,48 @@ export class ApiService {
         requestParams
       )
 
+      console.log('原始响应内容:', response.result);
+      
       // 解析响应数据
-      let responseData = JSON.parse(response.result as string) as Record<string, string | number | boolean | null>;
+      interface UserData {
+        username: string;
+        question: string;
+        hasEmail: boolean;
+        hasPhone: boolean;
+      }
+      
+      interface UserResponseData {
+        success: boolean;
+        message: string;
+        data?: UserData;
+      }
+      
+      let responseData = JSON.parse(response.result as string) as UserResponseData;
+      console.log('解析后的响应数据:', JSON.stringify(responseData));
+
+      // 转换数据为符合ApiResponse的格式
+      let apiData: Record<string, string | number | boolean | null> = {};
+      
+      if (responseData.data) {
+        // 将UserData转换为Record<string, string | number | boolean | null>
+        apiData['username'] = responseData.data.username;
+        apiData['question'] = responseData.data.question;
+        apiData['hasEmail'] = responseData.data.hasEmail;
+        apiData['hasPhone'] = responseData.data.hasPhone;
+      }
 
       // 返回符合ApiResponse类型的结构
       const successResponse: ApiResponse = {
-        success: response.responseCode === 200 && (responseData.success as boolean),
-        message: (responseData.message as string) || '验证完成',
-        data: responseData
+        success: response.responseCode === 200 && responseData.success,
+        message: responseData.message || '验证完成',
+        data: apiData
       }
 
+      console.log('处理后返回的响应:', JSON.stringify(successResponse));
       return successResponse;
     } catch (error) {
+      console.error('验证用户出错:', error instanceof Error ? error.message : JSON.stringify(error));
+      
       const errorObj = new ErrorObject();
       errorObj.message = error instanceof Error ? error.message : '网络请求失败';
 
