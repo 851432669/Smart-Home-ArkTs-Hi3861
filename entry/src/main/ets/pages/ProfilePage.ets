@@ -6,9 +6,9 @@ import { BusinessError } from '@kit.BasicServicesKit'
 import { cameraPicker } from '@kit.CameraKit'
 import { camera } from '@kit.CameraKit'
 
-// 定义房间管理对话框组件
+// 自定义添加房间对话框
 @CustomDialog
-struct RoomManageDialog {
+struct RoomAddDialog {
   controller: CustomDialogController
   @State roomName: string = ''
   onConfirm: (roomName: string) => void = () => {}
@@ -17,16 +17,16 @@ struct RoomManageDialog {
     Column() {
       Text('添加房间')
         .fontSize(20)
-        .fontWeight(FontWeight.Medium)
-        .margin({ top: 10, bottom: 10 })
+        .fontWeight(FontWeight.Bold)
+        .margin({ top: 15, bottom: 15 })
       
       TextInput({ placeholder: '请输入房间名称' })
         .width('90%')
         .height(50)
-        .margin({ bottom: 10 })
         .onChange((value: string) => {
           this.roomName = value
         })
+        .margin({ bottom: 20 })
       
       Flex({ justifyContent: FlexAlign.SpaceAround }) {
         Button('取消')
@@ -34,14 +34,14 @@ struct RoomManageDialog {
             this.controller.close()
           })
           .backgroundColor('#f5f5f5')
-          .fontColor('#999')
+          .fontColor('#666666')
           .width('40%')
           .height(40)
         
         Button('确定')
           .onClick(() => {
             if (this.roomName && this.roomName.trim().length > 0) {
-              this.onConfirm(this.roomName)
+              this.onConfirm(this.roomName.trim())
               this.controller.close()
             } else {
               promptAction.showToast({
@@ -50,17 +50,17 @@ struct RoomManageDialog {
               })
             }
           })
-          .backgroundColor('#007DFF')
+          .backgroundColor('#1890ff')
           .fontColor(Color.White)
           .width('40%')
           .height(40)
       }
-      .margin({ top: 10, bottom: 20 })
+      .width('90%')
     }
-    .width('90%')
+    .width('80%')
+    .padding({ top: 20, bottom: 20 })
     .backgroundColor(Color.White)
-    .borderRadius(10)
-    .padding(10)
+    .borderRadius(12)
   }
 }
 
@@ -352,19 +352,19 @@ export struct ProfilePage {
     alignment: DialogAlignment.Center
   })
   
-  // 房间管理对话框控制器 - 添加房间
-  roomAddController: CustomDialogController = new CustomDialogController({
-    builder: RoomManageDialog({
-      onConfirm: (roomName: string) => this.addRoom(roomName)
-    }),
-    autoCancel: true,
-    alignment: DialogAlignment.Center
-  })
-  
   // 房间管理对话框控制器 - 查看/删除房间
   roomListController: CustomDialogController = new CustomDialogController({
     builder: RoomListDialog({
       onDelete: (roomId: number) => this.deleteRoom(roomId)
+    }),
+    autoCancel: true,
+    alignment: DialogAlignment.Center
+  })
+
+  // 自定义添加房间对话框控制器
+  roomAddDialogController: CustomDialogController = new CustomDialogController({
+    builder: RoomAddDialog({
+      onConfirm: (roomName: string) => this.addRoom(roomName)
     }),
     autoCancel: true,
     alignment: DialogAlignment.Center
@@ -407,24 +407,31 @@ export struct ProfilePage {
   
   // 添加房间
   addRoom(roomName: string): void {
-    if (roomName) {
-      if (globalDataManager.addRoom(roomName)) {
+    if (roomName && roomName.trim() !== '') {
+      // 添加新房间
+      if(globalDataManager.addRoom(roomName.trim())) {
         // 更新本地房间列表
-        this.rooms = globalDataManager.getRooms()
+        this.rooms = globalDataManager.getRooms();
         // 更新本地用户信息状态
-        this.userInfo = globalDataManager.getUserInfo()
+        this.userInfo = globalDataManager.getUserInfo();
+        
         // 显示成功提示
         promptAction.showToast({
-          message: `成功添加房间：${roomName}`,
+          message: `成功添加房间：${roomName.trim()}`,
           duration: 2000
-        })
+        });
       } else {
         // 显示失败提示
         promptAction.showToast({
           message: '房间已存在或名称无效',
           duration: 2000
-        })
+        });
       }
+    } else {
+      promptAction.showToast({
+        message: '房间名称不能为空',
+        duration: 2000
+      });
     }
   }
   
@@ -571,7 +578,7 @@ export struct ProfilePage {
               .height(20)
               .margin({ left: 5 })
               .onClick(() => {
-                this.roomAddController.open()
+                this.roomAddDialogController.open()
               })
             
             // 管理房间按钮
