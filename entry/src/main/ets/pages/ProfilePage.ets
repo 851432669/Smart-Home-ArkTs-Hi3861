@@ -6,6 +6,11 @@ import { BusinessError } from '@kit.BasicServicesKit'
 import { cameraPicker } from '@kit.CameraKit'
 import { camera } from '@kit.CameraKit'
 
+// 对话框结果接口
+interface DialogResult {
+  index: number;
+}
+
 // 自定义添加房间对话框
 @CustomDialog
 struct RoomAddDialog {
@@ -531,6 +536,44 @@ export struct ProfilePage {
       console.error(`跳转到关于我们页面失败: ${JSON.stringify(err)}`)
     })
   }
+  
+  // 退出登录
+  logout(): void {
+    // 显示确认对话框
+    promptAction.showDialog({
+      title: '退出登录',
+      message: '确定要退出当前账号吗？',
+      buttons: [
+        {
+          text: '取消',
+          color: '#999'
+        },
+        {
+          text: '确定',
+          color: '#007DFF'
+        }
+      ]
+    }).then((result: DialogResult) => {
+      if (result.index === 1) { // 用户点击了"确定"
+        console.info('用户确认退出登录')
+        
+        // 显示退出提示
+        promptAction.showToast({
+          message: '退出成功',
+          duration: 2000
+        })
+        
+        // 退出到首页
+        router.replaceUrl({
+          url: 'pages/Index'
+        }).catch((err: Error) => {
+          console.error(`跳转到首页失败: ${JSON.stringify(err)}`)
+        })
+      }
+    }).catch((err: Error) => {
+      console.error(`显示退出确认对话框失败: ${JSON.stringify(err)}`)
+    })
+  }
 
   build() {
     Column() {
@@ -727,6 +770,25 @@ export struct ProfilePage {
         .backgroundColor(Color.White)
         .padding({ left: 20, right: 20, top: 15, bottom: 15 })
         .onClick(() => this.navigateToAboutUs())
+
+        // 退出登录按钮
+        Row() {
+          Text('退出登录')
+            .fontSize(16)
+            .fontColor('#ff4d4f') // 使用红色以突出显示
+          
+          Blank()
+          
+          Image($r('app.media.index2_unused')) // 使用现有资源作为箭头图标
+            .width(20)
+            .height(20)
+            .fillColor('#ff4d4f')
+        }
+        .width('100%')
+        .backgroundColor(Color.White)
+        .padding({ left: 20, right: 20, top: 15, bottom: 15 })
+        .margin({ top: 10 }) // 添加上边距，与其他选项分开
+        .onClick(() => this.logout())
       }
       .width('100%')
       .margin({ top: 10 })
